@@ -1,0 +1,40 @@
+{
+  "cli": {
+    "appVersionSource": "local"
+  },
+  "build": {
+    "dev-apk": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "ios": { "resourceClass": "m-medium" }
+    },
+    "dev-aab": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": { "buildType": "app-bundle" },
+      "ios": { "resourceClass": "m-medium" }
+    },
+
+    "preview-apk": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "ios": { "resourceClass": "m-medium" }
+    },
+    "preview-aab": {
+      "distribution": "internal",
+      "android": { "buildType": "app-bundle" },
+      "ios": { "resourceClass": "m-medium" }
+    },
+
+    "production": {
+      "distribution": "store",
+      "android": { "buildType": "app-bundle" },
+      "ios": { "resourceClass": "m-medium" }
+    },
+
+    "simulator": {
+      "ios": { "simulator": true }
+    }
+  }
+}

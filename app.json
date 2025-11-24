@@ -1,0 +1,89 @@
+{
+  "expo": {
+    "name": "Искра Юг",
+    "scheme": "iskra",
+    "slug": "iskra",
+    "version": "1.14.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#161622"
+    },
+    "android": {
+      "package": "com.iskraug.iskra",
+      "versionCode": 14,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#161622"
+      },
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "cover",
+        "backgroundColor": "#161622"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.iskraug.iskra.ios",
+      "supportsTablet": true,
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "cover",
+        "backgroundColor": "#161622"
+      },
+      "buildNumber": "14",
+      "infoPlist": {}
+    },
+    "androidStatusBar": {
+      "backgroundColor": "#161622",
+      "barStyle": "light-content"
+    },
+    "androidNavigationBar": {
+      "backgroundColor": "#161622",
+      "barStyle": "light-content"
+    },
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "resizeMode": "cover",
+          "backgroundColor": "#161622"
+        }
+      ],
+      "expo-secure-store",
+      "expo-font",
+      "./plugins/soft-input-adjust-nothing.plugin.js",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "-keep class com.facebook.react.** { *; }\n-keep class com.facebook.hermes.** { *; }\n-keep class expo.modules.** { *; }\n-keep class androidx.** { *; }\n-keep interface androidx.** { *; }\n-keep class okhttp3.** { *; }\n-keep class okio.** { *; }\n-keep class retrofit2.** { *; }\n-keep class com.google.gson.** { *; }\n-keepclasseswithmembers class * { native <methods>; }\n-keepclassmembers class * { @com.google.gson.annotations.SerializedName <fields>; }\n-assumenosideeffects class android.util.Log { public static *** d(...); public static *** v(...); public static *** i(...); public static *** w(...); }"
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
+}
