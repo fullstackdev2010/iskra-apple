@@ -2,8 +2,8 @@
   "expo": {
     "name": "Искра Юг",
     "scheme": "iskra",
-    "slug": "iskra",
-    "version": "1.14.0",
+    "slug": "iskra-apple",
+    "version": "1.15.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {
@@ -13,7 +13,7 @@
     },
     "android": {
       "package": "com.iskraug.iskra",
-      "versionCode": 14,
+      "versionCode": 15,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#161622"
@@ -32,7 +32,7 @@
         "resizeMode": "cover",
         "backgroundColor": "#161622"
       },
-      "buildNumber": "14",
+      "buildNumber": "15",
       "infoPlist": {}
     },
     "androidStatusBar": {
@@ -82,8 +82,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": ""
+        "projectId": "41d77b80-5835-44b6-b717-32d51e4ddf6e"
       }
-    }
+    },
+    "owner": "fullstackdev2010"
   }
 }
