@@ -1,5 +1,5 @@
 // app/(tabs)/cart.tsx
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Text, FlatList, View, Alert, Image, useWindowDimensions } from 'react-native';
 import useCartStore from '../../app/store/cartStore';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,13 +18,6 @@ export default function Cart() {
   const { height } = useWindowDimensions();
 
   const { isLoggedIn } = useGlobalContext();
-
-  // ❗ Корзина доступна только авторизованным пользователям
-  useEffect(() => {
-    if (!isLoggedIn) {
-      router.replace('/sign-in');
-    }
-  }, [isLoggedIn]);
 
   // Breakpoint fallback if tab height isn't provided (rare transient)
   const bpTab = height < 680 ? 56 : height < 780 ? 60 : height < 900 ? 64 : 72;
@@ -193,6 +186,28 @@ export default function Cart() {
       </View>
     );
   };
+
+   // 🧭 Гостевой режим: корзина видна как "заблокированная"
+  if (!isLoggedIn) {
+    return (
+      <SafeAreaView className="bg-primary flex-1">
+        <Header />
+        <View style={{ flex: 1, position: 'relative' }}>
+          <View className="flex-1 items-center justify-center px-6">
+            <Text className="text-white text-center text-lg mb-4">
+              Чтобы создать и отправить заказ, войдите в корпоративный аккаунт.
+            </Text>
+            <CustomButton
+              title="Войти"
+              handlePress={() => router.push('/sign-in')}
+              containerStyles="border-4 border-red-700 p-4"
+              textStyles="text-lg"
+            />
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (cart.length === 0) {
     return (

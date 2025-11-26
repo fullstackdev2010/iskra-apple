@@ -11,6 +11,7 @@ import { signOut, getMe } from '../../lib/auth';
 import { useFocusEffect } from '@react-navigation/native';
 import { useBottomLiftTabs } from '../../lib/useBottomLift';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import CustomButton from '../../components/CustomButton';
 
 const Profile = () => {
   const { user, setUser, setIsLoggedIn, isLoggedIn  } = useGlobalContext();
@@ -34,13 +35,6 @@ const Profile = () => {
     router.push('/sign-in');
   };
 
-  // ❗ Профиль доступен только авторизованным
-  useEffect(() => {
-    if (!isLoggedIn) {
-      router.replace('/sign-in');
-    }
-  }, [isLoggedIn]);
-
   const confirmPinReset = () => {
     Alert.alert('Сброс PIN', 'Вы уверены, что хотите сбросить PIN-код?', [
       { text: 'Отмена', style: 'cancel' },
@@ -54,7 +48,13 @@ const Profile = () => {
     return `${uri}${uri.includes('?') ? '&' : '?'}t=${Date.now()}`;
   }, []);
 
-  const refreshUser = useCallback(async () => {
+   const refreshUser = useCallback(async () => {
+    // В гостевом режиме профиль не подгружаем и не трогаем токены
+    if (!isLoggedIn) {
+      setRefreshing(false);
+      return;
+    }
+
     try {
       setRefreshing(true);
       const fresh = await getMe();
@@ -66,7 +66,7 @@ const Profile = () => {
       console.warn('Failed to refresh user profile:', e);
 
       const msg = String(e?.message || '');
-      // Если токен отозван/отсутствует — считаем, что пользователь разлогинен
+      // Если бэкенд говорит "Токен доступа не найден" — считаем, что сессия умерла
       if (msg.includes('Токен доступа не найден')) {
         try {
           await signOut();
@@ -75,16 +75,17 @@ const Profile = () => {
         }
         setUser(null);
         setIsLoggedIn(false);
+        // Уводим на домашнюю вкладку в гостевой режим
         router.replace('/(tabs)/home');
         return;
       }
 
-      // Для других ошибок просто пытаемся показать старую картинку менеджера
+      // Для других ошибок просто откатываемся к имеющемуся менеджеру
       setPictureUri(computeManagerPic(user?.manager));
     } finally {
       setRefreshing(false);
     }
-  }, [setUser, setIsLoggedIn, user?.manager, computeManagerPic]);
+  }, [isLoggedIn, setUser, setIsLoggedIn, user?.manager, computeManagerPic]);
 
   useFocusEffect(
     useCallback(() => {
@@ -132,7 +133,24 @@ const Profile = () => {
     );
   };
 
-  if (!user) return null;
+  // Гостевой режим: показываем экран "Нужно войти", а не падаем
+  if (!isLoggedIn || !user) {
+    return (
+      <SafeAreaView className="bg-primary flex-1">
+        <View className="flex-1 items-center justify-center px-4">
+          <Text className="text-white text-center text-lg mb-4">
+            Для доступа к профилю войдите в корпоративный аккаунт.
+          </Text>
+          <CustomButton
+            title="Войти"
+            handlePress={() => router.push('/sign-in')}
+            containerStyles="border-4 border-red-700 p-4"
+            textStyles="text-lg"
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const Header = () => (
     <View className="bg-primary px-4 pt-2 pb-3">

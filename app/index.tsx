@@ -140,7 +140,7 @@ export default function App() {
               marginBottom: 20
             }}
           >
-            Если вам нужен качественный электроинструмент — iskra-ug.ru
+            Для получения доступа обратитесь в офис компании Искра Юг - iskra-ug.ru.
           </Text>
 
           {/* CTA */}

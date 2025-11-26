@@ -78,20 +78,26 @@ export default function Orders() {
     }
   }, []);
 
-  useEffect(() => { fetchInitial(); }, [fetchInitial]);
-
-  // ❗ История заказов только для авторизованных пользователей
+  // Загружаем заказы только для авторизованных пользователей
   useEffect(() => {
-    if (!isLoggedIn) {
-      router.replace('/sign-in');
+    if (isLoggedIn) {
+      fetchInitial();
+    } else {
+      // в гостевом режиме не крутим спиннер и очищаем список
+      setInitialLoading(false);
+      setUserOrders([]);
+      setOffset(0);
+      setHasMore(false);
     }
-  }, [isLoggedIn]);
+  }, [fetchInitial, isLoggedIn]);
 
   useFocusEffect(
     useCallback(() => {
-      fetchInitial();
+      if (isLoggedIn) {
+        fetchInitial();
+      }
       return () => {};
-    }, [fetchInitial])
+    }, [fetchInitial, isLoggedIn])
   );
 
   const onRefresh = async () => {
@@ -149,6 +155,26 @@ export default function Orders() {
       </View>
     </View>
   );
+
+  // 🧭 Гостевой режим: история заказов как "заблокированный" экран
+  if (!isLoggedIn) {
+    return (
+      <SafeAreaView className="bg-primary flex-1">
+        <Header />
+        <View className="flex-1 items-center justify-center px-4">
+          <Text className="text-white text-center text-lg mb-4">
+            Для просмотра истории заказов войдите в корпоративный аккаунт.
+          </Text>
+          <CustomButton
+            title="Войти"
+            handlePress={() => router.push('/sign-in')}
+            containerStyles="border-4 border-red-700 p-4"
+            textStyles="text-lg"
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="bg-primary flex-1">
