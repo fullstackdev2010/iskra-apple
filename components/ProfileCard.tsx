@@ -75,7 +75,7 @@ const ProfileCard: React.FC<ItemCardProps> = ({
               title="Удалить аккаунт из приложения"
               handlePress={onDeleteAccount}
               containerStyles="mt-4 border-4 border-red-700"
-              textStyles="text-base"
+              textStyles="text-xl"
             />
           )}
         </Card.Content>

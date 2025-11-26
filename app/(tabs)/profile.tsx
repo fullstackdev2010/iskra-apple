@@ -123,7 +123,7 @@ const Profile = () => {
               await signOut();
               setUser(null);
               setIsLoggedIn(false);
-              router.replace('/sign-in');
+              router.replace('/');   // 👈 go to index instead of login
             } catch (e) {
               Alert.alert('Ошибка', 'Не удалось удалить аккаунт. Попробуйте позже.');
             }
