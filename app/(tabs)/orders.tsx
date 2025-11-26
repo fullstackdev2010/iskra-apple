@@ -10,6 +10,7 @@ import { useBottomLiftTabs } from '../../lib/useBottomLift';
 import { useFocusEffect } from '@react-navigation/native';
 import { useContentBottomPad } from '../../lib/responsive';
 import CustomButton from '../../components/CustomButton';
+import { useGlobalContext } from '../../context/GlobalProvider';
 
 const SPECIAL_COLOR = '#D35400'; // match ItemCard special price color
 
@@ -32,6 +33,7 @@ function formatDateLabel(iso: string) {
 const PAGE_SIZE = 20;
 
 export default function Orders() {
+  const { isLoggedIn } = useGlobalContext();
   const [refreshing, setRefreshing] = useState(false);
   const [userOrders, setUserOrders] = useState<any[]>([]);
   const [offset, setOffset] = useState(0);
@@ -77,6 +79,13 @@ export default function Orders() {
   }, []);
 
   useEffect(() => { fetchInitial(); }, [fetchInitial]);
+
+  // ❗ История заказов только для авторизованных пользователей
+  useEffect(() => {
+    if (!isLoggedIn) {
+      router.replace('/sign-in');
+    }
+  }, [isLoggedIn]);
 
   useFocusEffect(
     useCallback(() => {

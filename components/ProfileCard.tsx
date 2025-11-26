@@ -11,9 +11,18 @@ interface ItemCardProps {
   picture?: string;
   handlePress: () => void;
   onResetPin?: () => void;
+  onDeleteAccount?: () => void;
 }
 
-const ProfileCard: React.FC<ItemCardProps> = ({ manager, email2, phone, picture, handlePress, onResetPin }) => {
+const ProfileCard: React.FC<ItemCardProps> = ({
+  manager,
+  email2,
+  phone,
+  picture,
+  handlePress,
+  onResetPin,
+  onDeleteAccount,
+}) => {
   const openEmail = () => {
     if (email2) Linking.openURL(`mailto:${email2}`);
   };
@@ -58,6 +67,15 @@ const ProfileCard: React.FC<ItemCardProps> = ({ manager, email2, phone, picture,
               handlePress={onResetPin}
               containerStyles="mt-4 border-4 border-red-500"
               textStyles="text-xl"
+            />
+          )}
+
+          {onDeleteAccount && (
+            <CustomButton
+              title="Удалить аккаунт из приложения"
+              handlePress={onDeleteAccount}
+              containerStyles="mt-4 border-4 border-red-700"
+              textStyles="text-base"
             />
           )}
         </Card.Content>

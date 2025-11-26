@@ -89,7 +89,9 @@ export const useAuthFlow = () => {
       console.warn('⚠️ PIN token check failed:', e);
     }
 
-    router.replace('/(auth)/sign-in');
+    // ❗ Нет действующей сессии: пускаем пользователя в гостевой режим
+    // Каталог/поиск/карточки доступны без входа; вход нужен только для заказа.
+    router.replace('/(tabs)/home');
   };
 
   return { run };

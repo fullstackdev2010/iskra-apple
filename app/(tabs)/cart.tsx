@@ -1,5 +1,5 @@
 // app/(tabs)/cart.tsx
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Text, FlatList, View, Alert, Image, useWindowDimensions } from 'react-native';
 import useCartStore from '../../app/store/cartStore';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,6 +16,15 @@ export default function Cart() {
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight?.() || 0;
   const { height } = useWindowDimensions();
+
+  const { isLoggedIn } = useGlobalContext();
+
+  // ❗ Корзина доступна только авторизованным пользователям
+  useEffect(() => {
+    if (!isLoggedIn) {
+      router.replace('/sign-in');
+    }
+  }, [isLoggedIn]);
 
   // Breakpoint fallback if tab height isn't provided (rare transient)
   const bpTab = height < 680 ? 56 : height < 780 ? 60 : height < 900 ? 64 : 72;

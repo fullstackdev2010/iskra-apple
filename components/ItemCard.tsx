@@ -8,6 +8,7 @@ import CustomButton from '../components/CustomButton';
 import useCartStore from '../app/store/cartStore';
 import { useGlobalContext } from '../context/GlobalProvider';
 import { showTopToast } from '../lib/toast';
+import { router } from 'expo-router';
 
 interface ItemCardProps {
   code: string;
@@ -289,7 +290,11 @@ const ItemCard: React.FC<ItemCardProps> = ({
         <Title style={styles.text_caption}>{article}</Title>
         <Paragraph style={styles.text_regular}>{description}</Paragraph>
 
-        {!hasSpecial ? (
+        {!user ? (
+          <Paragraph style={styles.text_price}>
+            Войдите, чтобы увидеть вашу цену и остаток.
+          </Paragraph>
+        ) : !hasSpecial ? (
           <Paragraph style={styles.text_price}>
             Цена: {regularPrice}, Остаток: {stock}
           </Paragraph>
@@ -358,36 +363,49 @@ const ItemCard: React.FC<ItemCardProps> = ({
 
         {(!isOutOfStock || (isOutOfStock && !!onPress)) ? (
           <View style={styles.rowControls}>
-            {/* Narrow "Add" button */}
+            {/* Left button: either "Войти для заказа" (гость) или "Добавить" (авторизован) */}
             <View style={{ flex: 1, marginRight: 10 }}>
-              <CustomButton
-                title="Добавить"
-                handlePress={handleAddToCart}
-                containerStyles="border-4 border-red-700"
-                textStyles="text-lg"
-              />
+              {!user ? (
+                <CustomButton
+                  title="Войти для заказа"
+                  handlePress={() => router.push('/sign-in')}
+                  containerStyles="border-4 border-red-700"
+                  textStyles="text-lg"
+                />
+              ) : (
+                <CustomButton
+                  title="Добавить"
+                  handlePress={handleAddToCart}
+                  containerStyles="border-4 border-red-700"
+                  textStyles="text-lg"
+                />
+              )}
             </View>
 
-            {/* Quantity control on the right */}
-            <View style={styles.qtyGroup}>
-              <CustomButton
-                title="-"
-                handlePress={handleMinus}
-                containerStyles={`w-14 h-10 border-2 rounded-full ${minusDisabled ? 'bg-gray-600 opacity-50 border-gray-500' : 'border-red-700'}`}
-                textStyles="text-xl"
-              />
-              <Paragraph style={styles.qtyText}>
-                {existing ? Number(existing.quantity) : 0}
-              </Paragraph>
-              <CustomButton
-                title="+"
-                handlePress={handlePlus}
-                containerStyles={`w-14 h-10 border-2 rounded-full ${
-                  plusDisabled ? 'bg-gray-600 opacity-50 border-gray-500' : 'bg-green-600 border-red-700'
-                }`}
-                textStyles="text-xl"
-              />
-            </View>
+            {/* Quantity control on the right — только для авторизованных */}
+            {user && (
+              <View style={styles.qtyGroup}>
+                <CustomButton
+                  title="-"
+                  handlePress={handleMinus}
+                  containerStyles={`w-14 h-10 border-2 rounded-full ${
+                    minusDisabled ? 'bg-gray-600 opacity-50 border-gray-500' : 'border-red-700'
+                  }`}
+                  textStyles="text-xl"
+                />
+                <Paragraph style={styles.qtyText}>
+                  {existing ? Number(existing.quantity) : 0}
+                </Paragraph>
+                <CustomButton
+                  title="+"
+                  handlePress={handlePlus}
+                  containerStyles={`w-14 h-10 border-2 rounded-full ${
+                    plusDisabled ? 'bg-gray-600 opacity-50 border-gray-500' : 'bg-green-600 border-red-700'
+                  }`}
+                  textStyles="text-xl"
+                />
+              </View>
+            )}
           </View>
         ) : (
           <Paragraph style={styles.out_of_stock}>Нет в наличии</Paragraph>

@@ -6,10 +6,11 @@ import { router } from 'expo-router';
 import { images } from '../../constants';
 import FormField from '../../components/FormField';
 import CustomButton from '../../components/CustomButton';
-import { signUp } from '../../lib/auth';
+import { activate } from '../../lib/auth';
 import { useGlobalContext } from '../../context/GlobalProvider';
 import { stripHtmlTags, isValidEmail } from '../../lib/utils';
 
+// kept for future auto-login if needed
 const SignUp = () => {
   const { setUser, setIsLoggedIn } = useGlobalContext();
   const [form, setForm] = useState({
@@ -17,6 +18,7 @@ const SignUp = () => {
     email: '',
     password: '',
   });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Responsive vertical spacing + logo sizing
@@ -25,13 +27,9 @@ const SignUp = () => {
   const logoH = Math.max(160, Math.min(240, Math.round(height * 0.2)));
 
   const submit = async () => {
-    if (!form.username || !form.email || !form.password) {
+    if (!form.email || !form.password) {
       Alert.alert('Ошибка ввода.', 'Пожалуйста заполните все поля.');
       return;
-    }
-
-    if (form.username.length < 2) {
-      return Alert.alert('Неверное имя.', 'Имя пользователя слишком короткое.');
     }
 
     if (!isValidEmail(form.email)) {
@@ -44,15 +42,15 @@ const SignUp = () => {
 
     setIsSubmitting(true);
     try {
-      await signUp(
-        stripHtmlTags(form.username),
-        stripHtmlTags(form.email),
-        stripHtmlTags(form.password)
+      // ⚡ Моментальная активация корпоративной учётной записи
+      await activate(stripHtmlTags(form.email), stripHtmlTags(form.password));
+      Alert.alert(
+        'Активация выполнена',
+        'Ваш корпоративный доступ активирован. Теперь Вы можете выполнить вход.'
       );
-      Alert.alert('Успешно', 'Регистрация прошла успешно. Пожалуйста войдите в систему.');
       router.replace('/sign-in');
     } catch (error: any) {
-      Alert.alert('Ошибка', 'Ошибка регистрации.');
+      Alert.alert('Ошибка', 'Не удалось активировать корпоративный доступ.');
     } finally {
       setIsSubmitting(false);
     }
@@ -70,20 +68,9 @@ const SignUp = () => {
             style={{ width: '100%', height: logoH }}
             resizeMode="contain"
           />
-
           <Text className="text-2xl text-white text-center font-pregular mt-2">
-            Регистрация в личный кабинет
+            Активация корпоративного доступа
           </Text>
-
-          <FormField
-            title="Имя пользователя"
-            value={form.username}
-            handleChangeText={(e) => setForm({ ...form, username: e })}
-            otherStyles="mt-7"
-            placeholder="Введите имя пользователя"
-            keyboardType="default"
-          />
-
           <FormField
             title="Эл. почта"
             value={form.email}
@@ -104,7 +91,7 @@ const SignUp = () => {
           />
 
           <CustomButton
-            title="Регистрация"
+            title="Активировать доступ"
             handlePress={submit}
             isLoading={isSubmitting}
             containerStyles="mt-7 border-4 border-red-700"
@@ -113,7 +100,7 @@ const SignUp = () => {
 
           <View className="justify-center items-center pt-5 flex-row gap-2">
             <Text className="text-lg text-gray-100 font-pregular mt-3">
-              У Вас есть учетная запись?
+              Доступ уже активирован?
             </Text>
             <Text
               onPress={() => router.push('/sign-in')}

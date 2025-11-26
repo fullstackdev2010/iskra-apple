@@ -13,7 +13,7 @@ import { useBottomLiftTabs } from '../../lib/useBottomLift';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
 const Profile = () => {
-  const { user, setUser, setIsLoggedIn } = useGlobalContext();
+  const { user, setUser, setIsLoggedIn, isLoggedIn  } = useGlobalContext();
   const [pictureUri, setPictureUri] = useState<string>('');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -33,6 +33,13 @@ const Profile = () => {
     setIsLoggedIn(false);
     router.push('/sign-in');
   };
+
+  // ❗ Профиль доступен только авторизованным
+  useEffect(() => {
+    if (!isLoggedIn) {
+      router.replace('/sign-in');
+    }
+  }, [isLoggedIn]);
 
   const confirmPinReset = () => {
     Alert.alert('Сброс PIN', 'Вы уверены, что хотите сбросить PIN-код?', [
@@ -55,13 +62,29 @@ const Profile = () => {
         setUser(fresh);
         setPictureUri(computeManagerPic(fresh.manager));
       }
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Failed to refresh user profile:', e);
+
+      const msg = String(e?.message || '');
+      // Если токен отозван/отсутствует — считаем, что пользователь разлогинен
+      if (msg.includes('Токен доступа не найден')) {
+        try {
+          await signOut();
+        } catch (err) {
+          console.warn('signOut error after token-missing:', err);
+        }
+        setUser(null);
+        setIsLoggedIn(false);
+        router.replace('/(tabs)/home');
+        return;
+      }
+
+      // Для других ошибок просто пытаемся показать старую картинку менеджера
       setPictureUri(computeManagerPic(user?.manager));
     } finally {
       setRefreshing(false);
     }
-  }, [setUser, user?.manager, computeManagerPic]);
+  }, [setUser, setIsLoggedIn, user?.manager, computeManagerPic]);
 
   useFocusEffect(
     useCallback(() => {
@@ -80,6 +103,34 @@ const Profile = () => {
   useEffect(() => {
     setPictureUri(computeManagerPic(user?.manager));
   }, [user?.manager, computeManagerPic]);
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Удалить аккаунт',
+      'Ваш доступ в приложении будет отключён. Для новой активации обратитесь к менеджеру.',
+      [
+        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Удалить',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // вызов backend: DELETE /auth/me
+              const api = (await import('../../lib/api')).default;
+              await api.delete('/auth/me');
+
+              await signOut();
+              setUser(null);
+              setIsLoggedIn(false);
+              router.replace('/sign-in');
+            } catch (e) {
+              Alert.alert('Ошибка', 'Не удалось удалить аккаунт. Попробуйте позже.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   if (!user) return null;
 
@@ -118,7 +169,9 @@ const Profile = () => {
             picture={pictureUri}
             handlePress={logout}
             onResetPin={confirmPinReset}
+            onDeleteAccount={handleDeleteAccount}
           />
+
         </View>
       </ScrollView>
     </SafeAreaView>
