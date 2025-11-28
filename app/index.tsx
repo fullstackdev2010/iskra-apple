@@ -146,7 +146,7 @@ export default function App() {
           {/* CTA */}
           <View style={{ marginTop: ctaTop }}>
             <CustomButton
-              title="Продолжить для авторизации"
+              title="Продолжить для просмотра"
               handlePress={handleContinue} // ✅ preflight + error surface
               containerStyles="w-full border-4 border-red-700"
               textStyles={isCompact ? 'text-lg' : 'text-xl'}

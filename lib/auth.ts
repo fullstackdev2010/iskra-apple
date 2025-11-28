@@ -133,8 +133,10 @@ export async function activate(email: string, password: string): Promise<string>
  * By default it busts cache to avoid stale responses after profile changes.
  */
 export async function getMe(opts?: { bustCache?: boolean }): Promise<UserProfile> {
+// 1) Try to use existing access token (if present)
   let token = await getToken();
   if (!token) {
+    // Missing token → try to refresh immediately
     token = await refreshAccessToken();
   }
   if (!token) {
@@ -145,22 +147,44 @@ export async function getMe(opts?: { bustCache?: boolean }): Promise<UserProfile
   const url = new URL(`${API_HOST}/auth/me`);
   if (bustCache) url.searchParams.set("_", String(Date.now()));
 
-  const res = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/json",
-      // Defensive cache controls in case a proxy misbehaves
-      "Cache-Control": "no-cache",
-      Pragma: "no-cache",
-    },
-  });
+  // Helper to call /auth/me with a given token
+  const callMe = async (activeToken: string) => {
+    const res = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${activeToken}`,
+        Accept: "application/json",
+        // Defensive cache controls in case a proxy misbehaves
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
+    });
+    const text = await res.text();
+    return { res, text };
+  };
 
-  const text = await res.text();
-  if (!res.ok) throw new Error(`me failed: ${res.status} ${text}`);
+  // 2) First attempt with the current token
+  let { res, text } = await callMe(token);
+
+  // 3) If access token is expired (401), try to refresh once and retry
+  if (res.status === 401) {
+    const newToken = await refreshAccessToken();
+    if (newToken) {
+      token = newToken;
+      ({ res, text } = await callMe(token));
+    }
+  }
+
+  if (!res.ok) {
+    // At this point either:
+    // - refresh also failed (expired/invalid refresh token), or
+    // - some other auth/server error occurred.
+    // Let the caller decide to log out or show an error.
+    throw new Error(`me failed: ${res.status} ${text}`);
+  }
 
   const data: UserProfile = JSON.parse(text);
 
-  // Keep axios instance in sync for any axios-based calls elsewhere
+  // 4) Keep axios instance in sync for any axios-based calls elsewhere
   api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
   return data;
