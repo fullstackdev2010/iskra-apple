@@ -14,6 +14,10 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import CustomButton from '../../components/CustomButton';
 
 const Profile = () => {
+
+  // ---- Feature flag: account deletion temporarily disabled ----
+  const ACCOUNT_DELETE_ENABLED = false;
+
   const { user, setUser, setIsLoggedIn, isLoggedIn  } = useGlobalContext();
   const [pictureUri, setPictureUri] = useState<string>('');
   const [refreshing, setRefreshing] = useState(false);
@@ -187,7 +191,7 @@ const Profile = () => {
             picture={pictureUri}
             handlePress={logout}
             onResetPin={confirmPinReset}
-            onDeleteAccount={handleDeleteAccount}
+            onDeleteAccount={ACCOUNT_DELETE_ENABLED ? handleDeleteAccount : undefined}
           />
 
         </View>
