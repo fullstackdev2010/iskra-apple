@@ -2,7 +2,7 @@
   "expo": {
     "name": "Искра Юг",
     "scheme": "iskra",
-    "slug": "iskra-apple",
+    "slug": "iskra",
     "version": "1.15.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
