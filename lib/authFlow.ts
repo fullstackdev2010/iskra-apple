@@ -1,6 +1,6 @@
 // lib/authFlow.ts
 import { router } from 'expo-router';
-import { restoreBiometricSession, getToken, setGlobalToken } from './authService';
+import { restoreBiometricSession, getToken } from './authService';
 import { hydrateTokensOnce } from './authService';
 import { getCurrentUser } from './auth';
 import * as SecureStore from 'expo-secure-store';
@@ -8,12 +8,12 @@ import { useGlobalContext } from '../context/GlobalProvider';
 import { checkInternetOrThrow, NetworkUnavailableError } from './network';
 import { API_HOST } from './constants';
 import { Platform, ToastAndroid, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 
 async function checkBackendOrThrow(timeoutMs = 4000) {
-  // First, confirm device has internet
   await checkInternetOrThrow();
 
-  // Then, confirm backend is reachable (expects GET /health on the server)
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), timeoutMs);
   try {
@@ -31,7 +31,9 @@ async function checkBackendOrThrow(timeoutMs = 4000) {
 function notifyNoBackend() {
   const msg = 'Нет соединения с сервером. Попробуйте позже.';
   if (Platform.OS === 'android') {
-    try { ToastAndroid.show(msg, ToastAndroid.SHORT); } catch {}
+    try {
+      ToastAndroid.show(msg, ToastAndroid.SHORT);
+    } catch {}
   } else {
     Alert.alert('Нет соединения', msg);
   }
@@ -41,42 +43,59 @@ export const useAuthFlow = () => {
   const { setUser, setIsLoggedIn } = useGlobalContext();
 
   const run = async () => {
+    // ----------------------------------------------------
+    // 🚫 GUEST MODE: Full logout BEFORE hydration happens
+    // ----------------------------------------------------
+    const guest = await AsyncStorage.getItem('guest_mode');
+    if (guest === '1') {
+      try { await SecureStore.deleteItemAsync("access_token"); } catch {}
+      try { await SecureStore.deleteItemAsync("refresh_token"); } catch {}
+      await AsyncStorage.removeItem("logged_in").catch(() => {});
 
-    // Wait for token hydration BEFORE any auth checks
+      axios.defaults.headers.common["Authorization"] = undefined;
+
+      setUser(null);
+      setIsLoggedIn(false);
+
+      router.replace('/(tabs)/home');
+      return;
+    }
+
+    // ----------------------------------------------------
+    // Normal authorization flow
+    // ----------------------------------------------------
+
     await hydrateTokensOnce();
-    
-    // Hard gate at startup: if no internet OR no backend, show toast and STOP.
+
     try {
       await checkBackendOrThrow();
     } catch {
       notifyNoBackend();
-      return; // ← do not proceed to biometric or PIN
+      return;
     }
 
-    // Biometric fast path
+    // Biometric
     try {
       const bioToken = await restoreBiometricSession();
       if (bioToken) {
         try {
-          // Double-check backend before touching it (in case state changed)
           await checkBackendOrThrow();
         } catch {
           notifyNoBackend();
-          return; // ← do not proceed
+          return;
         }
 
         const profile = await getCurrentUser();
         setUser(profile);
         setIsLoggedIn(true);
-        // setGlobalToken(bioToken); // uncomment if you rely on a global header
-        router.replace('/home'); // keep your route as provided
+        router.replace('/home');
         return;
       }
     } catch (e) {
       console.warn('⚠️ Biometric auth failed:', e);
     }
 
-    // PIN fallback path — only if backend is reachable right now
+    // PIN fallback
     try {
       const pinHash = await SecureStore.getItemAsync('pin_hash');
       const token = await getToken(false);
@@ -85,7 +104,7 @@ export const useAuthFlow = () => {
           await checkBackendOrThrow();
         } catch {
           notifyNoBackend();
-          return; // ← do not show PIN when backend is down
+          return;
         }
         router.replace('/(auth)/pin-login');
         return;
@@ -94,8 +113,7 @@ export const useAuthFlow = () => {
       console.warn('⚠️ PIN token check failed:', e);
     }
 
-    // ❗ Нет действующей сессии: пускаем пользователя в гостевой режим
-    // Каталог/поиск/карточки доступны без входа; вход нужен только для заказа.
+    // No session at all → guest browsing
     router.replace('/(tabs)/home');
   };
 
