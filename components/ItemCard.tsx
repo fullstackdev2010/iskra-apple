@@ -57,7 +57,11 @@ const ItemCard: React.FC<ItemCardProps> = ({
     ? cartState.items
     : (Array.isArray(cartState?.cart) ? cartState.cart : []);
 
-  const { user } = useGlobalContext();
+  const { user, isLoggedIn } = useGlobalContext();
+
+  // Only fully authenticated users with a non-empty usercode
+  // may see prices/stock or interact with the order controls
+  const canViewCommercialData = !!user?.usercode && isLoggedIn;
 
   // Regular price = price + discount
   const regularPrice = useMemo(() => {
@@ -144,7 +148,7 @@ const ItemCard: React.FC<ItemCardProps> = ({
       }
     });
 
-  // (keep your doubleTap if you added it; otherwise this is fine)
+  // Combine gestures (pinch + pan); doubleTap can be added if needed
   const combined = Gesture.Simultaneous(pinch, pan);
 
   // Animated style for image wrapper
@@ -290,7 +294,7 @@ const ItemCard: React.FC<ItemCardProps> = ({
         <Title style={styles.text_caption}>{article}</Title>
         <Paragraph style={styles.text_regular}>{description}</Paragraph>
 
-        {!user ? (
+        {!canViewCommercialData ? (
           <Paragraph style={styles.text_price}>
             Войдите, чтобы увидеть вашу цену и остаток.
           </Paragraph>
@@ -365,7 +369,7 @@ const ItemCard: React.FC<ItemCardProps> = ({
           <View style={styles.rowControls}>
             {/* Left button: either "Войти для заказа" (гость) или "Добавить" (авторизован) */}
             <View style={{ flex: 1, marginRight: 10 }}>
-              {!user ? (
+              {!canViewCommercialData ? (
                 <CustomButton
                   title="Войти для заказа"
                   handlePress={() => router.push('/sign-in')}
@@ -382,8 +386,8 @@ const ItemCard: React.FC<ItemCardProps> = ({
               )}
             </View>
 
-            {/* Quantity control on the right — только для авторизованных */}
-            {user && (
+            {/* Quantity control on the right — только для авторизованных с реальным usercode */}
+            {canViewCommercialData && (
               <View style={styles.qtyGroup}>
                 <CustomButton
                   title="-"
