@@ -120,12 +120,14 @@ export default function App() {
   // --------------------------------------------------------
   const handleAuthLink = async () => {
     try {
+      // 🔹 Leave guest world both in storage and in memory
       await AsyncStorage.removeItem("guest_mode");
       await AsyncStorage.removeItem("guest_ignore_token");
+      setGuestSession(false);
 
       await checkInternetOrThrow();
 
-      // IMPORTANT: go through preload/authFlow so stored token / biometric / PIN can restore
+      // go through preload/authFlow so stored token / biometric / PIN can restore
       router.replace("/(preload)");
     } catch (err: any) {
       if (err instanceof NetworkUnavailableError) {
