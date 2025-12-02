@@ -195,9 +195,9 @@ export default function App() {
             />
           </View>
 
-          <View style={{ marginTop: 16, alignItems: 'center' }}>
+          <View style={{ marginTop: 20, alignItems: 'center' }}>
             <TouchableOpacity onPress={handleAuthLink} activeOpacity={0.7}>
-              <Text style={{ color: '#93c5fd', fontSize: 14, textDecorationLine: 'underline' }}>
+              <Text style={{ color: '#93c5fd', fontSize: 18, textDecorationLine: 'underline' }}>
                 Авторизация
               </Text>
             </TouchableOpacity>
