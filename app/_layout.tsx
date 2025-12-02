@@ -5,6 +5,7 @@ import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import GlobalProvider from '../context/GlobalProvider';
+import { hydrateTokensOnce } from '../lib/authService';
 import 'regenerator-runtime/runtime';
 import ErrorBoundary from '../components/ErrorBoundary';
 import ErrorFallback from '../components/ErrorFallback';
@@ -100,6 +101,8 @@ const RootLayout = () => {
   useEffect(() => {
     if (error) throw error;
     if (fontsLoaded) SplashScreen.hideAsync();
+    // Force-securestore hydration early
+    hydrateTokensOnce();
   }, [fontsLoaded, error]);
 
   if (!fontsLoaded && !error) return null;

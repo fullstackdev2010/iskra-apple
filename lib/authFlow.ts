@@ -1,6 +1,7 @@
 // lib/authFlow.ts
 import { router } from 'expo-router';
 import { restoreBiometricSession, getToken, setGlobalToken } from './authService';
+import { hydrateTokensOnce } from './authService';
 import { getCurrentUser } from './auth';
 import * as SecureStore from 'expo-secure-store';
 import { useGlobalContext } from '../context/GlobalProvider';
@@ -40,6 +41,10 @@ export const useAuthFlow = () => {
   const { setUser, setIsLoggedIn } = useGlobalContext();
 
   const run = async () => {
+
+    // Wait for token hydration BEFORE any auth checks
+    await hydrateTokensOnce();
+    
     // Hard gate at startup: if no internet OR no backend, show toast and STOP.
     try {
       await checkBackendOrThrow();

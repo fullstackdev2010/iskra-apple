@@ -19,6 +19,7 @@ const PinLogin = () => {
   const { setUser, setIsLoggedIn } = useGlobalContext();
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   // Responsive sizing
   const { height } = useWindowDimensions();
@@ -28,14 +29,18 @@ const PinLogin = () => {
   const gapKeypad = Math.max(20, Math.min(32, Math.round(height * 0.028)));
 
   useEffect(() => {
-    (async () => {
-      try {
-        await checkBackendOrThrow();
-      } catch {
-        Alert.alert('Нет соединения', 'Сервер недоступен. Попробуйте позже.');
-        router.replace('/(preload)'); // back to bootstrap
-      }
-    })();
+  // Perform hydration: check backend and ensure SecureStore is readable
+  (async () => {
+    try {
+      await checkBackendOrThrow();
+      // Give SecureStore a moment (prevents race on fast reopen)
+      await new Promise(res => setTimeout(res, 120));
+      setHydrated(true);
+    } catch {
+      Alert.alert('Нет соединения', 'Сервер недоступен. Попробуйте позже.');
+      router.replace('/(preload)');
+    }
+  })();
   }, []);
 
   /**
@@ -44,33 +49,34 @@ const PinLogin = () => {
    * - If neither exists, silently route to password login.
    */
   useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        let hash = await SecureStore.getItemAsync("pin_hash");
-        if (!hash) {
-          const backup = await AsyncStorage.getItem("pin_hash_backup");
-          if (backup) {
-            // restore into SecureStore with AFTER_FIRST_UNLOCK (iOS), harmless on Android
-            const opts: any = {
-              requireAuthentication: false,
-              keychainAccessible: (SecureStore as any).AFTER_FIRST_UNLOCK || undefined,
-            };
-            await SecureStore.setItemAsync("pin_hash", backup, opts);
-            hash = backup;
-          }
+    if (!hydrated) return;  // ⛔ Don't check PIN storage before hydration
+
+  let active = true;
+  (async () => {
+    try {
+      let hash = await SecureStore.getItemAsync("pin_hash");
+
+      // Restore from backup if SecureStore was empty
+      if (!hash) {
+        const backup = await AsyncStorage.getItem("pin_hash_backup");
+        if (backup) {
+          const opts: any = {
+            requireAuthentication: false,
+            keychainAccessible: (SecureStore as any).AFTER_FIRST_UNLOCK || undefined,
+          };
+          await SecureStore.setItemAsync("pin_hash", backup, opts);
+          hash = backup;
         }
-        if (!hash && active) {
-          router.replace("/(auth)/sign-in");
-        }
-      } catch {
-        if (active) router.replace("/(auth)/sign-in");
       }
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
+
+      if (!hash && active) router.replace("/(auth)/sign-in");
+    } catch {
+      if (active) router.replace("/(auth)/sign-in");
+    }
+  })();
+
+  return () => { active = false; };
+  }, [hydrated]);
 
   const handleDigit = (digit: string) => {
     if (loading) return;
@@ -143,10 +149,9 @@ const PinLogin = () => {
   };
 
   useEffect(() => {
-    if (pin.length === 4) {
-      checkPin();
-    }
-  }, [pin]);
+    if (!hydrated) return;  // ⛔ Never check PIN before hydration is done
+    if (pin.length === 4) checkPin();
+  }, [pin, hydrated]);
 
   return (
     <SafeAreaView className="bg-primary h-full">

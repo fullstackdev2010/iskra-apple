@@ -31,6 +31,8 @@ interface GlobalContextType {
   setUser: (user: User | null) => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
+  hydrated: boolean;
+  setHydrated: (v: boolean) => void;
 }
 
 const GlobalContext = createContext<GlobalContextType>({} as GlobalContextType);
@@ -45,10 +47,11 @@ export const GlobalProvider = ({ children }: Props) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hydrated, setHydrated] = useState(false);
 
   // 🔥 store context globally so lib/trade.ts can read/update user safely
   globalContextRef = {
-    isLoggedIn, setIsLoggedIn, user, setUser, isLoading, setIsLoading,
+    isLoggedIn, setIsLoggedIn, user, setUser, isLoading, setIsLoading, hydrated, setHydrated,
   };
 
   return (
@@ -60,6 +63,8 @@ export const GlobalProvider = ({ children }: Props) => {
         setUser,
         isLoading,
         setIsLoading,
+        hydrated,
+        setHydrated,
       }}
     >
       {children}

@@ -12,19 +12,21 @@ const LOGGED_IN_FLAG = "logged_in";
 const PROBE_KEY = "__securestore_probe__";
 
 let cachedToken: string | null = null;
-let skipBiometricOnce = false;
-let biometricRanOnce = false;
+let hydrated = false;
+
+export async function hydrateTokensOnce() {
+  if (hydrated) return;
+  hydrated = true;
+  const usable = await secureStoreUsable();
+  if (!usable) return;
+
+  try {
+    const token = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY, { requireAuthentication: false } as any);
+    if (token) setGlobalToken(token);
+  } catch {}
+}
+
 let usableCache: boolean | null = null;
-
-export function shouldRunBiometric(): boolean {
-  if (biometricRanOnce) return false;
-  biometricRanOnce = true;
-  return true;
-}
-
-export function setSkipBiometricOnce() {
-  skipBiometricOnce = true;
-}
 
 export function setGlobalToken(token: string | null) {
   cachedToken = token;
@@ -150,10 +152,11 @@ export async function disableBiometric() {
  * - then load/refresh tokens without gating in SecureStore.
  */
 export async function restoreBiometricSession(): Promise<string | null> {
-  if (skipBiometricOnce) {
-    skipBiometricOnce = false;
-    return null;
-  }
+
+  await hydrateTokensOnce();  // ensure token is loaded before biometric flow
+
+  // tiny delay ensures SecureStore is ready after fast reopen
+  await new Promise(r => setTimeout(r, 100));
 
   const optIn = await AsyncStorage.getItem(BIOMETRIC_FLAG);
   if (optIn !== "1") return null;
@@ -173,10 +176,17 @@ export async function restoreBiometricSession(): Promise<string | null> {
   });
   if (!auth.success) return null;
 
+  await new Promise(r => setTimeout(r, 80)); // extra stability
+
   // After successful biometric, restore or refresh token
   let token = await getToken(false);
   if (!token) token = await refreshAccessToken();
-  return token ?? null;
+
+  if (token) {
+    setGlobalToken(token);
+    return token;
+  }
+  return null; // biometric ok but no valid token → go to PIN
 }
 
 /** Try restore; if no token, try refresh */
