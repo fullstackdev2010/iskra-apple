@@ -7,7 +7,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
 import { getToken, saveToken, refreshAccessToken } from "../../lib/authService";
 import { getCurrentUser } from "../../lib/auth";
-import { useGlobalContext } from "../../context/GlobalProvider";
+import { useGlobalContext, setGuestSession } from "../../context/GlobalProvider";
 import { router } from "expo-router";
 import PinKeypad from "../../components/PinKeypad";
 import { images } from "../../constants";
@@ -29,18 +29,18 @@ const PinLogin = () => {
   const gapKeypad = Math.max(20, Math.min(32, Math.round(height * 0.028)));
 
   useEffect(() => {
-  // Perform hydration: check backend and ensure SecureStore is readable
-  (async () => {
-    try {
-      await checkBackendOrThrow();
-      // Give SecureStore a moment (prevents race on fast reopen)
-      await new Promise(res => setTimeout(res, 120));
-      setHydrated(true);
-    } catch {
-      Alert.alert('Нет соединения', 'Сервер недоступен. Попробуйте позже.');
-      router.replace('/(preload)');
-    }
-  })();
+    // Perform hydration: check backend and ensure SecureStore is readable
+    (async () => {
+      try {
+        await checkBackendOrThrow();
+        // Give SecureStore a moment (prevents race on fast reopen)
+        await new Promise((res) => setTimeout(res, 120));
+        setHydrated(true);
+      } catch {
+        Alert.alert("Нет соединения", "Сервер недоступен. Попробуйте позже.");
+        router.replace("/(preload)");
+      }
+    })();
   }, []);
 
   /**
@@ -49,33 +49,36 @@ const PinLogin = () => {
    * - If neither exists, silently route to password login.
    */
   useEffect(() => {
-    if (!hydrated) return;  // ⛔ Don't check PIN storage before hydration
+    if (!hydrated) return; // ⛔ Don't check PIN storage before hydration
 
-  let active = true;
-  (async () => {
-    try {
-      let hash = await SecureStore.getItemAsync("pin_hash");
+    let active = true;
+    (async () => {
+      try {
+        let hash = await SecureStore.getItemAsync("pin_hash");
 
-      // Restore from backup if SecureStore was empty
-      if (!hash) {
-        const backup = await AsyncStorage.getItem("pin_hash_backup");
-        if (backup) {
-          const opts: any = {
-            requireAuthentication: false,
-            keychainAccessible: (SecureStore as any).AFTER_FIRST_UNLOCK || undefined,
-          };
-          await SecureStore.setItemAsync("pin_hash", backup, opts);
-          hash = backup;
+        // Restore from backup if SecureStore was empty
+        if (!hash) {
+          const backup = await AsyncStorage.getItem("pin_hash_backup");
+          if (backup) {
+            const opts: any = {
+              requireAuthentication: false,
+              keychainAccessible:
+                (SecureStore as any).AFTER_FIRST_UNLOCK || undefined,
+            };
+            await SecureStore.setItemAsync("pin_hash", backup, opts);
+            hash = backup;
+          }
         }
+
+        if (!hash && active) router.replace("/(auth)/sign-in");
+      } catch {
+        if (active) router.replace("/(auth)/sign-in");
       }
+    })();
 
-      if (!hash && active) router.replace("/(auth)/sign-in");
-    } catch {
-      if (active) router.replace("/(auth)/sign-in");
-    }
-  })();
-
-  return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [hydrated]);
 
   const handleDigit = (digit: string) => {
@@ -93,7 +96,9 @@ const PinLogin = () => {
   const checkPin = async () => {
     setLoading(true);
     try {
-      const storedHash = await SecureStore.getItemAsync("pin_hash").catch(() => null);
+      const storedHash = await SecureStore.getItemAsync("pin_hash").catch(
+        () => null
+      );
       if (!storedHash) {
         router.replace("/(auth)/sign-in");
         return;
@@ -101,7 +106,10 @@ const PinLogin = () => {
 
       const [hashPlain, hashPeppered] = await Promise.all([
         Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, pin),
-        Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, pin + PEPPER),
+        Crypto.digestStringAsync(
+          Crypto.CryptoDigestAlgorithm.SHA256,
+          pin + PEPPER
+        ),
       ]);
 
       const legacyMatch = storedHash === hashPlain;
@@ -118,13 +126,15 @@ const PinLogin = () => {
         try {
           const opts: any = {
             requireAuthentication: false,
-            keychainAccessible: (SecureStore as any).AFTER_FIRST_UNLOCK || undefined,
+            keychainAccessible:
+              (SecureStore as any).AFTER_FIRST_UNLOCK || undefined,
           };
           await SecureStore.setItemAsync("pin_hash", hashPeppered, opts);
           await AsyncStorage.setItem("pin_hash_backup", hashPeppered);
         } catch {
-          // non-fatal — user can still proceed
-          console.warn("⚠️ Failed to migrate PIN hash to peppered version");
+          console.warn(
+            "⚠️ Failed to migrate PIN hash to peppered version"
+          );
         }
       }
 
@@ -134,9 +144,18 @@ const PinLogin = () => {
 
       if (token) {
         await saveToken(token, false);
+
+        // ✅ Leaving guest mode on successful PIN auth
+        await AsyncStorage.removeItem("guest_mode");
+        await AsyncStorage.removeItem("guest_ignore_token");
+        setGuestSession(false);
+
         const profile = await getCurrentUser();
         setUser(profile);
         setIsLoggedIn(true);
+
+        await AsyncStorage.setItem("logged_in", "1");
+
         router.replace("/home");
       } else {
         router.replace("/(auth)/sign-in"); // fallback to password if no usable token
@@ -149,21 +168,31 @@ const PinLogin = () => {
   };
 
   useEffect(() => {
-    if (!hydrated) return;  // ⛔ Never check PIN before hydration is done
+    if (!hydrated) return; // ⛔ Never check PIN before hydration is done
     if (pin.length === 4) checkPin();
   }, [pin, hydrated]);
 
   return (
     <SafeAreaView className="bg-primary h-full">
       <View className="w-full justify-center px-4 flex-1">
-        <Image source={images.iskra} style={{ width: "100%", height: logoH, marginBottom: 8 }} resizeMode="contain" />
+        <Image
+          source={images.iskra}
+          style={{ width: "100%", height: logoH, marginBottom: 8 }}
+          resizeMode="contain"
+        />
 
         <View className="items-center">
-          <Text style={{ fontSize: titleSize }} className="text-white text-center font-pregular mt-2">
+          <Text
+            style={{ fontSize: titleSize }}
+            className="text-white text-center font-pregular mt-2"
+          >
             Введите PIN-код
           </Text>
 
-          <View style={{ marginTop: gapDots, marginBottom: gapKeypad }} className="flex-row justify-center space-x-4">
+          <View
+            style={{ marginTop: gapDots, marginBottom: gapKeypad }}
+            className="flex-row justify-center space-x-4"
+          >
             {Array.from({ length: 4 }).map((_, idx) => (
               <View
                 key={idx}
@@ -174,11 +203,17 @@ const PinLogin = () => {
             ))}
           </View>
 
-          <PinKeypad onPress={handleDigit} onDelete={handleDelete} disabled={loading} />
+          <PinKeypad
+            onPress={handleDigit}
+            onDelete={handleDelete}
+            disabled={loading}
+          />
         </View>
 
         <Pressable onPress={() => router.replace("/(auth)/sign-in")}>
-          <Text className="text-center text-base text-gray-300 mt-8 underline">Войти с паролем</Text>
+          <Text className="text-center text-base text-gray-300 mt-8 underline">
+            Войти с паролем
+          </Text>
         </Pressable>
       </View>
     </SafeAreaView>

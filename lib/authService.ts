@@ -100,7 +100,9 @@ export async function saveToken(token: string, biometricEnabled = false) {
   return saveTokens(token, undefined, biometricEnabled);
 }
 
-export async function getToken(_requireAuth = true): Promise<string | null> {
+export async function getToken(_requireAuth = true): Promise<string | null> { 
+  // ✔ Guest mode does NOT block token restore.
+  // Guest mode only affects routing, not token logic.
   if (cachedToken) return cachedToken;
   const usable = await secureStoreUsable();
   if (!usable) return null;

@@ -7,7 +7,9 @@ import React, {
   useContext,
   useState,
   ReactNode,
+  useEffect,
 } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface User {
   $id?: number;
@@ -35,6 +37,12 @@ interface GlobalContextType {
   setHydrated: (v: boolean) => void;
 }
 
+// In-memory guest flag, controlled by landing / auth screens
+let guestSession = false;
+export const setGuestSession = (v: boolean) => {
+  guestSession = v;
+};
+
 const GlobalContext = createContext<GlobalContextType>({} as GlobalContextType);
 
 export const useGlobalContext = () => useContext(GlobalContext);
@@ -44,22 +52,72 @@ interface Props {
 }
 
 export const GlobalProvider = ({ children }: Props) => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const [isLoggedInState, _setIsLoggedIn] = useState(false);
+  const [userState, _setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hydrated, setHydrated] = useState(false);
 
+  // Wrapped setters enforcing guest mode
+  const setIsLoggedIn = (loggedIn: boolean) => {
+    if (guestSession) {
+      _setIsLoggedIn(false);
+      return;
+    }
+    _setIsLoggedIn(loggedIn);
+  };
+
+  const setUser = (user: User | null) => {
+    if (guestSession) {
+      _setUser({
+        username: "Новый Пользователь",
+        email: "",
+        usercode: "",
+      });
+      return;
+    }
+    _setUser(user);
+  };
+
+  // On mount, initialize guestSession from storage
+  useEffect(() => {
+    (async () => {
+      try {
+        const g = await AsyncStorage.getItem("guest_mode");
+        if (g === "1") {
+          guestSession = true;
+          _setIsLoggedIn(false);
+          _setUser({
+            username: "Новый Пользователь",
+            email: "",
+            usercode: "",
+          });
+        }
+      } catch {
+        // ignore
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, []);
+
   // 🔥 store context globally so lib/trade.ts can read/update user safely
   globalContextRef = {
-    isLoggedIn, setIsLoggedIn, user, setUser, isLoading, setIsLoading, hydrated, setHydrated,
+    isLoggedIn: isLoggedInState,
+    setIsLoggedIn,
+    user: userState,
+    setUser,
+    isLoading,
+    setIsLoading,
+    hydrated,
+    setHydrated,
   };
 
   return (
     <GlobalContext.Provider
       value={{
-        isLoggedIn,
+        isLoggedIn: isLoggedInState,
         setIsLoggedIn,
-        user,
+        user: userState,
         setUser,
         isLoading,
         setIsLoading,

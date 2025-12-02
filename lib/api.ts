@@ -2,6 +2,7 @@
 import axios, { AxiosHeaders } from "axios";
 import axiosRetry from "axios-retry";
 import { API_HOST } from "./constants"; // ← fixed path
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getToken, refreshAccessToken } from "./authService";
 import NetInfo from "@react-native-community/netinfo";
 import { Platform, ToastAndroid, Alert } from "react-native";
@@ -43,14 +44,21 @@ api.interceptors.request.use(async (config) => {
     throw new axios.CanceledError("OFFLINE");
   }
 
-  // 1) Auth header (no biometric prompt for background)
+ // 1) 🚫 Guest mode → never attach Authorization header
+  const guest = await AsyncStorage.getItem("guest_mode");
+  if (guest === "1") {
+    if (config.headers) {
+      delete (config.headers as any).Authorization;
+    }
+    return config; // ← skip token completely
+  }
+
+  // 2) 🔐 Normal logged-in flow: attach access token
   const t = await getToken(false);
   if (t) {
-     // Ensure headers is an AxiosHeaders instance, then use .set()
     if (!config.headers) {
       config.headers = new AxiosHeaders();
     } else if (!(config.headers instanceof AxiosHeaders)) {
-      // Normalize any legacy POJO to AxiosHeaders
       config.headers = new AxiosHeaders(config.headers as any);
     }
     (config.headers as AxiosHeaders).set("Authorization", `Bearer ${t}`);

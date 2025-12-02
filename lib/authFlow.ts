@@ -1,121 +1,104 @@
 // lib/authFlow.ts
-import { router } from 'expo-router';
-import { restoreBiometricSession, getToken } from './authService';
-import { hydrateTokensOnce } from './authService';
-import { getCurrentUser } from './auth';
-import * as SecureStore from 'expo-secure-store';
-import { useGlobalContext } from '../context/GlobalProvider';
-import { checkInternetOrThrow, NetworkUnavailableError } from './network';
-import { API_HOST } from './constants';
-import { Platform, ToastAndroid, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import { useGlobalContext } from "../context/GlobalProvider";
+import { router } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
+import axios from "axios";
 
-async function checkBackendOrThrow(timeoutMs = 4000) {
-  await checkInternetOrThrow();
+import {
+  restoreBiometricSession,
+  restoreSession,
+} from "./authService";
+import { handleError } from "./errorHandler";
+import NetInfo from "@react-native-community/netinfo";
 
-  const ctl = new AbortController();
-  const t = setTimeout(() => ctl.abort(), timeoutMs);
-  try {
-    const res = await fetch(`${API_HOST}/health`, { method: 'GET', signal: ctl.signal });
-    if (!res || !res.ok) {
-      throw new NetworkUnavailableError('Сервер недоступен');
-    }
-  } catch {
-    throw new NetworkUnavailableError('Сервер недоступен');
-  } finally {
-    clearTimeout(t);
-  }
-}
-
-function notifyNoBackend() {
-  const msg = 'Нет соединения с сервером. Попробуйте позже.';
-  if (Platform.OS === 'android') {
-    try {
-      ToastAndroid.show(msg, ToastAndroid.SHORT);
-    } catch {}
-  } else {
-    Alert.alert('Нет соединения', msg);
-  }
-}
-
+/**
+ * Auth flow hook.
+ *
+ * Option A semantics:
+ * - If guest_mode === "1" → HARD guest: no token/biometric/refresh restore, always "Новый Пользователь".
+ * - If not guest → try to restore real user session from token/biometric/refresh.
+ */
 export const useAuthFlow = () => {
-  const { setUser, setIsLoggedIn } = useGlobalContext();
+  const { setUser, setIsLoggedIn, setIsLoading } = useGlobalContext();
 
   const run = async () => {
-    // ----------------------------------------------------
-    // 🚫 GUEST MODE: Full logout BEFORE hydration happens
-    // ----------------------------------------------------
-    const guest = await AsyncStorage.getItem('guest_mode');
-    if (guest === '1') {
-      try { await SecureStore.deleteItemAsync("access_token"); } catch {}
-      try { await SecureStore.deleteItemAsync("refresh_token"); } catch {}
-      await AsyncStorage.removeItem("logged_in").catch(() => {});
-
-      axios.defaults.headers.common["Authorization"] = undefined;
-
-      setUser(null);
-      setIsLoggedIn(false);
-
-      router.replace('/(tabs)/home');
-      return;
-    }
-
-    // ----------------------------------------------------
-    // Normal authorization flow
-    // ----------------------------------------------------
-
-    await hydrateTokensOnce();
-
     try {
-      await checkBackendOrThrow();
-    } catch {
-      notifyNoBackend();
-      return;
-    }
+      setIsLoading(true);
 
-    // Biometric
-    try {
-      const bioToken = await restoreBiometricSession();
-      if (bioToken) {
-        try {
-          await checkBackendOrThrow();
-        } catch {
-          notifyNoBackend();
+      const guest = await AsyncStorage.getItem("guest_mode");
+      const tokenInStorage = await SecureStore.getItemAsync("access_token").catch(
+        () => null
+      );
+
+      // ------------------------------------------------------
+      // 🚫 RULE A: Guest Mode → HARD BLOCK ALL SESSION RESTORE
+      // ------------------------------------------------------
+      if (guest === "1") {
+        console.log("🔹 AUTHFLOW: GUEST MODE → FORCE LOGGED OUT VIEW");
+
+        // NEVER allow stored token to activate in this mode
+        axios.defaults.headers.common["Authorization"] = undefined;
+
+        setUser({
+          username: "Новый Пользователь",
+          email: "",
+          usercode: "",
+        } as any);
+        setIsLoggedIn(false);
+
+        router.replace("/(tabs)/home");
+        return;
+      }
+
+      // ------------------------------------------------------
+      // Real user flow — only if NOT guest
+      // ------------------------------------------------------
+      console.log("🔹 AUTHFLOW: REAL USER MODE");
+
+      if (!tokenInStorage) {
+        // no stored session → go to password login
+        setUser(null as any);
+        setIsLoggedIn(false);
+        router.replace("/(auth)/sign-in");
+        return;
+      }
+
+      // Network needed for biometrics/refresh
+      const net = await NetInfo.fetch();
+      const online = net.isConnected !== false;
+
+      // Try biometric first
+      if (online) {
+        const bio = await restoreBiometricSession();
+        if (bio) {
+          setIsLoggedIn(true);
+          router.replace("/home");
           return;
         }
+      }
 
-        const profile = await getCurrentUser();
-        setUser(profile);
+      // fallback → try refresh
+      const ok = await restoreSession();
+      if (ok) {
         setIsLoggedIn(true);
-        router.replace('/home');
+        router.replace("/home");
         return;
       }
-    } catch (e) {
-      console.warn('⚠️ Biometric auth failed:', e);
-    }
 
-    // PIN fallback
-    try {
-      const pinHash = await SecureStore.getItemAsync('pin_hash');
-      const token = await getToken(false);
-      if (token && pinHash) {
-        try {
-          await checkBackendOrThrow();
-        } catch {
-          notifyNoBackend();
-          return;
-        }
-        router.replace('/(auth)/pin-login');
-        return;
-      }
-    } catch (e) {
-      console.warn('⚠️ PIN token check failed:', e);
+      // token invalid → go to login
+      setUser(null as any);
+      setIsLoggedIn(false);
+      router.replace("/(auth)/sign-in");
+    } catch (err) {
+      console.error("authFlow error:", err);
+      handleError(err as any);
+    } finally {
+      setIsLoading(false);
     }
-
-    // No session at all → guest browsing
-    router.replace('/(tabs)/home');
   };
 
   return { run };
 };
+
+export default useAuthFlow;
