@@ -100,7 +100,8 @@ export default function App() {
 
       await checkInternetOrThrow();
 
-      router.replace("/(tabs)/home");
+      // Use navigate so back button returns to landing page
+      router.navigate("/(tabs)/home");
     } catch (err: any) {
       if (err instanceof NetworkUnavailableError) {
         handleError(err, {
