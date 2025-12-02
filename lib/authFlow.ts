@@ -20,7 +20,7 @@ export const useAuthFlow = () => {
 
       // GUEST MODE — authFlow should do nothing
       if (guest === "1") {
-        console.log("AUTHFLOW: guest → don't restore real user.");
+        //console.log("AUTHFLOW: guest → don't restore real user.");
         setIsLoggedIn(false);
         setUser({
           username: "Новый Пользователь",
@@ -31,7 +31,7 @@ export const useAuthFlow = () => {
       }
 
       // NOT GUEST → restore previous real user
-      console.log("AUTHFLOW: restoring real user");
+      //console.log("AUTHFLOW: restoring real user");
 
       if (!token) {
         setIsLoggedIn(false);

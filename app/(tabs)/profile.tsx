@@ -79,14 +79,14 @@ const Profile = () => {
 
     // Prevent overlapping refresh
     if (isRefreshingInternal.current) {
-      console.log("🔁 Skipping refresh: already running");
+      //console.log("🔁 Skipping refresh: already running");
       return;
     }
 
     // Throttle calls to once every REFRESH_COOLDOWN_MS
     const now = Date.now();
     if (now - lastRef.current < REFRESH_COOLDOWN_MS) {
-      console.log("🔁 Skipping refresh: cooling down");
+      //console.log("🔁 Skipping refresh: cooling down");
       return;
     }
     lastRef.current = now;
@@ -131,7 +131,7 @@ const Profile = () => {
       if (Date.now() - lastActiveCall.current > 1000) {
         refreshUser();
       } else {
-        console.log("🔁 Skipping focus refresh: AppState just fired");
+        //console.log("🔁 Skipping focus refresh: AppState just fired");
       }
       return () => {};
     }, [refreshUser])
