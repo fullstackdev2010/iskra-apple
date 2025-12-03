@@ -92,69 +92,81 @@ const ProfileCard: React.FC<ItemCardProps> = ({
             </Paragraph>
           </Pressable>
 
-      {/* ----------------------------------------------------------- */}
-      {/* 🔐 PRIVACY SETTINGS BLOCK */}
-      {/* ----------------------------------------------------------- */}
-      <View
-        style={{
-          marginTop: 20,
-          padding: 14,
-          backgroundColor: '#111827',
-          borderRadius: 12,
-        }}
-      >
-        <Text
-          style={{
-            color: 'white',
-            fontSize: 18,
-            fontWeight: 'bold',
-            marginBottom: 8,
-            textAlign: 'center',
-          }}
-        >
-          Параметры конфиденциальности
-        </Text>
+          {/* ----------------------------------------------------------- */}
+          {/* 🔐 PRIVACY SETTINGS BLOCK — styled as CustomButton */}
+          {/* ----------------------------------------------------------- */}
 
-        {/* 🔐 Enable Biometric Login */}
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginVertical: 6,
-          }}
-        >
-          <Text style={{ color: 'white', fontSize: 16, flex: 1, marginRight: 6 }}>
-            Использовать биометрию для входа
-          </Text>
-          <Switch
-            trackColor={{ false: '#374151', true: '#2563eb' }}
-            thumbColor="#f9fafb"
-            value={biometricEnabled}
-            onValueChange={saveBio}
-          />
-        </View>
+          <View
+            style={{
+              marginTop: 20,
+              borderWidth: 4,
+              borderColor: '#b91c1c', // red-700
+              backgroundColor: '#FF9C01',
+              borderRadius: 16,
+              paddingVertical: 6,
+              paddingHorizontal: 18,
+            }}
+          >
+            {/* 🔐 Enable Biometric Login */}
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginVertical: 10,
+              }}
+            >
+              <Text
+                style={{
+                  color: '#161622',
+                  fontSize: 18,
+                  fontWeight: '600',
+                  flex: 1,
+                  paddingRight: 10,
+                }}
+              >
+                Использовать биометрию для входа
+              </Text>
 
-        {/* 👤 Enable Guest Mode */}
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginVertical: 6,
-          }}
-        >
-          <Text style={{ color: 'white', fontSize: 16, flex: 1, marginRight: 6 }}>
-            Включить гостевой режим по умолчанию
-          </Text>
-          <Switch
-            trackColor={{ false: '#374151', true: '#2563eb' }}
-            thumbColor="#f9fafb"
-            value={guestEnabled}
-            onValueChange={saveGuest}
-          />
-        </View>
-      </View>
+              <Switch
+                trackColor={{ false: '#374151', true: '#2563eb' }}
+                thumbColor="#f9fafb"
+                value={biometricEnabled}
+                onValueChange={saveBio}
+                style={{ transform: [{ scaleX: 1.15 }, { scaleY: 1.15 }] }}
+              />
+            </View>
+
+            {/* 👤 Enable Guest Mode */}
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginVertical: 10,
+              }}
+            >
+              <Text
+                style={{
+                  color: '#161622',
+                  fontSize: 18,
+                  fontWeight: '500',
+                  flex: 1,
+                  paddingRight: 10,
+                }}
+              >
+                Включить гостевой режим по умолчанию
+              </Text>
+
+              <Switch
+                trackColor={{ false: '#374151', true: '#2563eb' }}
+                thumbColor="#f9fafb"
+                value={guestEnabled}
+                onValueChange={saveGuest}
+                style={{ transform: [{ scaleX: 1.15 }, { scaleY: 1.15 }] }}
+              />
+            </View>
+          </View>
 
           <CustomButton
             title="Выход из учетной записи"
@@ -167,7 +179,7 @@ const ProfileCard: React.FC<ItemCardProps> = ({
             <CustomButton
               title="Сброс PIN"
               handlePress={onResetPin}
-              containerStyles="mt-4 border-4 border-red-500"
+              containerStyles="mt-4 border-4 border-red-700"
               textStyles="text-xl"
             />
           )}
