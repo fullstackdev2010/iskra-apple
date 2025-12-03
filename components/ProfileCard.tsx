@@ -1,8 +1,13 @@
 // components/ProfileCard.tsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, Title, Paragraph } from 'react-native-paper';
-import { View, StyleSheet, Linking, Pressable } from 'react-native';
+import { View, StyleSheet, Linking, Pressable, Switch, Text } from 'react-native';
 import CustomButton from '../components/CustomButton';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Default Apple-friendly privacy settings
+const DEFAULT_BIOMETRIC = true;
+const DEFAULT_GUEST = true;
 
 interface ItemCardProps {
   manager: string;
@@ -31,6 +36,39 @@ const ProfileCard: React.FC<ItemCardProps> = ({
     if (phone) Linking.openURL(`tel:${phone}`);
   };
 
+  /* ---------------------------------------------------------------
+     LOCAL STATE FOR SWITCHES (must NOT be constant!)
+     --------------------------------------------------------------- */
+  const [biometricEnabled, setBiometricEnabled] = useState(DEFAULT_BIOMETRIC);
+  const [guestEnabled, setGuestEnabled] = useState(DEFAULT_GUEST);
+
+  /* ---------------------------------------------------------------
+     LOAD SETTINGS FROM STORAGE ON MOUNT
+     --------------------------------------------------------------- */
+  useEffect(() => {
+    (async () => {
+      const bio = await AsyncStorage.getItem("biometric_enabled");
+      const guest = await AsyncStorage.getItem("guest_default");
+
+      if (bio === "0") setBiometricEnabled(false);
+      if (bio === "1") setBiometricEnabled(true);
+
+      if (guest === "0") setGuestEnabled(false);
+      if (guest === "1") setGuestEnabled(true);
+    })();
+  }, []);
+
+  /* Saves are triggered on each switch toggle */
+  const saveBio = async (v: boolean) => {
+    setBiometricEnabled(v);
+    await AsyncStorage.setItem("biometric_enabled", v ? "1" : "0");
+  };
+
+  const saveGuest = async (v: boolean) => {
+    setGuestEnabled(v);
+    await AsyncStorage.setItem("guest_default", v ? "1" : "0");
+  };
+
   return (
     <View style={{ marginTop: 8, marginBottom: 10 }}>
       <Card>
@@ -53,6 +91,70 @@ const ProfileCard: React.FC<ItemCardProps> = ({
               Телефон: {phone || '—'}
             </Paragraph>
           </Pressable>
+
+      {/* ----------------------------------------------------------- */}
+      {/* 🔐 PRIVACY SETTINGS BLOCK */}
+      {/* ----------------------------------------------------------- */}
+      <View
+        style={{
+          marginTop: 20,
+          padding: 14,
+          backgroundColor: '#111827',
+          borderRadius: 12,
+        }}
+      >
+        <Text
+          style={{
+            color: 'white',
+            fontSize: 18,
+            fontWeight: 'bold',
+            marginBottom: 8,
+            textAlign: 'center',
+          }}
+        >
+          Параметры конфиденциальности
+        </Text>
+
+        {/* 🔐 Enable Biometric Login */}
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginVertical: 6,
+          }}
+        >
+          <Text style={{ color: 'white', fontSize: 16, flex: 1, marginRight: 6 }}>
+            Использовать биометрию для входа
+          </Text>
+          <Switch
+            trackColor={{ false: '#374151', true: '#2563eb' }}
+            thumbColor="#f9fafb"
+            value={biometricEnabled}
+            onValueChange={saveBio}
+          />
+        </View>
+
+        {/* 👤 Enable Guest Mode */}
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginVertical: 6,
+          }}
+        >
+          <Text style={{ color: 'white', fontSize: 16, flex: 1, marginRight: 6 }}>
+            Включить гостевой режим по умолчанию
+          </Text>
+          <Switch
+            trackColor={{ false: '#374151', true: '#2563eb' }}
+            thumbColor="#f9fafb"
+            value={guestEnabled}
+            onValueChange={saveGuest}
+          />
+        </View>
+      </View>
 
           <CustomButton
             title="Выход из учетной записи"
