@@ -44,20 +44,25 @@ export const useAuthFlow = () => {
       const online = net.isConnected !== false;
 
       if (online) {
+        // Try biometric login (returns token or null)
         const bio = await restoreBiometricSession();
+
         if (bio) {
+          // Biometric successful
           setIsLoggedIn(true);
           router.replace("/home");
           return;
         }
-      }
 
-      const ok = await restoreSession();
-      if (ok) {
-        setIsLoggedIn(true);
-        router.replace("/home");
+        // ❗ Biometric failed/unavailable → require PIN
+        setIsLoggedIn(false);
+        router.replace("/(auth)/pin-login");
         return;
       }
+
+      // ❗ Never auto-restore session without biometrics → require PIN
+      router.replace("/(auth)/pin-login");
+      return;
 
       setIsLoggedIn(false);
       setUser(null as any);
