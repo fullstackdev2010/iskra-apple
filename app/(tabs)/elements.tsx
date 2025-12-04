@@ -20,6 +20,7 @@ import SearchInput from '../../components/SearchInput';
 import { fetchItemsByCode, fetchToolsByCode, fetchPartsByCode } from '../../lib/trade';
 import { useBottomLiftTabs } from '../../lib/useBottomLift';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { ActivityIndicator } from 'react-native';
 
 const Elements = () => {
   const navigation = useNavigation();
@@ -198,12 +199,22 @@ const Elements = () => {
         renderItem={renderItem}
         keyboardShouldPersistTaps="always"
         keyboardDismissMode="on-drag"
-        ListEmptyComponent={() => (
-          <EmptyState
-            title="Элементы не найдены"
-            subtitle="Выберите категорию для отображения элементов"
-          />
-        )}
+        ListEmptyComponent={() => {
+          if (isLoading) {
+            return (
+              <View style={{ paddingTop: 40, alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#709bf2" />
+                <Text style={{ color: 'white', marginTop: 12 }}>Загрузка...</Text>
+              </View>
+            );
+          }
+          return (
+            <EmptyState
+              title="Элементы не найдены"
+              subtitle="Выберите категорию для отображения элементов"
+            />
+          );
+        }}
         contentContainerStyle={{ paddingTop: 4, paddingBottom: contentBottomPad }}
         ListFooterComponent={ListFooter}
         // Keep this constant; changing it dynamically can trigger unwanted layout cycles
