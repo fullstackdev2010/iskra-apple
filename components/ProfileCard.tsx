@@ -82,42 +82,50 @@ const ProfileCard: React.FC<ItemCardProps> = ({
             </Paragraph>
           </Pressable>
 
+          
           {/* SETTINGS BLOCK */}
           <View
             style={{
               marginTop: 20,
-              borderWidth: 4,
-              borderColor: "#b91c1c",
-              backgroundColor: "#FF9C01",
+              borderWidth: 5,
+              borderColor: "#ff0000",
               borderRadius: 16,
-              paddingVertical: 6,
-              paddingHorizontal: 18,
+              overflow: "hidden", // ⭐ KEY: Prevent background from overflowing borders
             }}
           >
-            {/* Biometric */}
-            <View style={styles.row}>
-              <Text style={styles.label}>Использовать биометрию для входа</Text>
+            <View
+              style={{
+                backgroundColor: "#FF9C01",
+                borderRadius: 8, // slightly smaller radius so corners render cleanly
+                paddingVertical: 12,
+                paddingHorizontal: 18,
+              }}
+            >
+              {/* Biometric */}
+              <View style={styles.row}>
+                <Text style={styles.label}>Использовать биометрию для входа</Text>
 
-              <Switch
-                trackColor={{ false: "#374151", true: "#2563eb" }}
-                thumbColor="#f9fafb"
-                value={biometricEnabled}
-                onValueChange={saveBio}
-                style={styles.switch}
-              />
-            </View>
+                <Switch
+                  trackColor={{ false: "#374151", true: "#709bf2" }}
+                  thumbColor="#f9fafb"
+                  value={biometricEnabled}
+                  onValueChange={saveBio}
+                  style={styles.switch}
+                />
+              </View>
 
-            {/* Guest mode toggle */}
-            <View style={styles.row}>
-              <Text style={styles.label}>Включить гостевой режим по умолчанию</Text>
+              {/* Guest mode */}
+              <View style={styles.row}>
+                <Text style={styles.label}>Включить гостевой режим по умолчанию</Text>
 
-              <Switch
-                trackColor={{ false: "#374151", true: "#2563eb" }}
-                thumbColor="#f9fafb"
-                value={guestEnabled}
-                onValueChange={saveGuest}
-                style={styles.switch}
-              />
+                <Switch
+                  trackColor={{ false: "#374151", true: "#709bf2" }}
+                  thumbColor="#f9fafb"
+                  value={guestEnabled}
+                  onValueChange={saveGuest}
+                  style={styles.switch}
+                />
+              </View>
             </View>
           </View>
 
