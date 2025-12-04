@@ -372,7 +372,7 @@ const ItemCard: React.FC<ItemCardProps> = ({
               {!canViewCommercialData ? (
                 <CustomButton
                   title="Войти для заказа"
-                  handlePress={() => router.push('/sign-in')}
+                  handlePress={() => router.push('/')}
                   containerStyles="border-4 border-red-700"
                   textStyles="text-lg"
                 />

@@ -187,7 +187,7 @@ export default function Cart() {
     );
   };
 
-   // 🧭 Гостевой режим: корзина видна как "заблокированная"
+  // 🧭 Гостевой режим: корзина видна как "заблокированная"
   if (!isLoggedIn) {
     return (
       <SafeAreaView className="bg-primary flex-1">
@@ -199,7 +199,7 @@ export default function Cart() {
             </Text>
             <CustomButton
               title="Войти"
-              handlePress={() => router.push('/sign-in')}
+              handlePress={() => router.push('/')}
               containerStyles="border-4 border-red-700 p-4"
               textStyles="text-lg"
             />

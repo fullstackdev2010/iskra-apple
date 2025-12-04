@@ -177,30 +177,43 @@ export default function App() {
             resizeMode="contain"
           />
 
-          <View style={{ alignItems: "center", marginTop: 25 }}>
+          <View style={{ alignItems: "center", marginTop: 20 }}>
             <Text
               style={{
                 fontSize: titleSize,
-                lineHeight: titleLH,
+                //lineHeight: titleLH,
                 color: "white",
                 textAlign: "center",
               }}
             >
-              Универсальная платформа для заказа электроинструмента.
+              Универсальная платформа для заказа электроинструмента ТМ Электроприбор, ЭЛТИ,
+              Приоритет, Усадьба. г. Ростов-на-Дону.
             </Text>
           </View>
 
           <Text
             style={{
               fontSize: subtitleSize,
-              lineHeight: subtitleLH,
+              //lineHeight: subtitleLH,
               color: "#e5e7eb",
               textAlign: "center",
-              marginTop: 20,
-              marginBottom: 20,
+              marginTop: 10,
+              marginBottom: 4,
             }}
           >
             Для получения доступа обратитесь в офис компании Искра Юг - iskra-ug.ru.
+          </Text>
+
+          <Text
+            style={{
+              fontSize: 14,
+              color: "#e5e7eb",
+              textAlign: "center",
+              marginTop: 10,
+              marginBottom: 4,
+            }}
+          >
+            Гостевой режим можно выключить в профиле приложения (по требованию операторов)
           </Text>
 
           <View style={{ marginTop: ctaTop }}>

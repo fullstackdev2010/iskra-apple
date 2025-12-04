@@ -167,7 +167,7 @@ export default function Orders() {
           </Text>
           <CustomButton
             title="Войти"
-            handlePress={() => router.push('/sign-in')}
+            handlePress={() => router.push('/')}
             containerStyles="border-4 border-red-700 p-4"
             textStyles="text-lg"
           />
