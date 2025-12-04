@@ -28,114 +28,126 @@ function clamp(n: number, min: number, max: number) {
 }
 
 export default function App() {
-  const { setUser, setIsLoggedIn, isLoading, isLoggedIn } = useGlobalContext();
+  const {
+    setUser,
+    setIsLoggedIn,
+    isLoading,
+    isLoggedIn,
+    user,
+    guestModeDefault,
+  } = useGlobalContext();
+
   const bp = useBreakpoint();
   const { width: winW, height: winH } = useWindowDimensions();
   const shortSide = Math.min(winW, winH);
-
   const bottomPad = useBottomLiftStandalone();
 
-  const containerMaxW = useResponsiveValue<number>(
-    { compact: 360, regular: 420, large: 480, xlarge: 640 },
-    420
-  );
+  const containerMaxW = useResponsiveValue({
+    compact: 360,
+    regular: 420,
+    large: 480,
+    xlarge: 640,
+  }, 420);
 
-  const titleSize = useResponsiveValue<number>(
-    { compact: 22, regular: 26, large: 30, xlarge: 34 },
-    26
-  );
+  const titleSize = useResponsiveValue({
+    compact: 22,
+    regular: 26,
+    large: 30,
+    xlarge: 34,
+  }, 26);
   const titleLH = Math.round(titleSize * 1.28);
 
-  const subtitleSize = useResponsiveValue<number>(
-    { compact: 16, regular: 18, large: 20, xlarge: 22 },
-    18
-  );
+  const subtitleSize = useResponsiveValue({
+    compact: 16,
+    regular: 18,
+    large: 20,
+    xlarge: 22,
+  }, 18);
   const subtitleLH = Math.round(subtitleSize * 1.35);
 
-  const topPadding = useResponsiveValue<number>(
-    { compact: 16, regular: 24, large: 32, xlarge: 40 },
-    24
-  );
+  const topPadding = useResponsiveValue({
+    compact: 16,
+    regular: 24,
+    large: 32,
+    xlarge: 40,
+  }, 24);
 
-  const ctaTop = useResponsiveValue<number>(
-    { compact: 24, regular: 32, large: 40, xlarge: 48 },
-    32
-  );
+  const ctaTop = useResponsiveValue({
+    compact: 24,
+    regular: 32,
+    large: 40,
+    xlarge: 48,
+  }, 32);
 
-  const heroFrac = useResponsiveValue<number>(
-    { compact: 0.3, regular: 0.28, large: 0.25, xlarge: 0.22 },
-    0.28
-  );
-  const heroMin = 140;
-  const heroMax = 260;
+  const heroFrac = useResponsiveValue({
+    compact: 0.3,
+    regular: 0.28,
+    large: 0.25,
+    xlarge: 0.22,
+  }, 0.28);
+  const heroHeight = clamp(Math.round(shortSide * heroFrac), 140, 260);
 
-  const heroHeight = clamp(Math.round(shortSide * heroFrac), heroMin, heroMax);
   const isCompact = bp === "compact";
-
   const [ctaLoading, setCtaLoading] = React.useState(false);
 
   // --------------------------------------------------------
-  // ✔ Continue as Guest — HARD guest mode
+  // Determine button text based on registration + guest_default
+  // --------------------------------------------------------
+  const buttonTitle = guestModeDefault
+    ? "Продолжить для просмотра"
+    : "Продолжить для авторизации";
+
+  const showAuthLink = guestModeDefault; // hide when user turned guest off
+
+  // --------------------------------------------------------
+  // Continue as Guest
   // --------------------------------------------------------
   const handleContinue = async () => {
     if (ctaLoading) return;
     setCtaLoading(true);
 
     try {
-      // Mark guest in storage AND in in-memory global flag
-      await AsyncStorage.setItem("guest_mode", "1");
-      await AsyncStorage.setItem("guest_ignore_token", "1");
-      setGuestSession(true);
+      if (guestModeDefault) {
+        await AsyncStorage.setItem("guest_mode", "1");
+        await AsyncStorage.setItem("guest_ignore_token", "1");
+        setGuestSession(true);
 
-      // Prevent using token for this session
-      delete axios.defaults.headers.common["Authorization"];
+        delete axios.defaults.headers.common["Authorization"];
+        setUser({ username: "Новый Пользователь", email: "", usercode: "" });
+        setIsLoggedIn(false);
 
-      // Force guest user in context
-      setUser({
-        username: "Новый Пользователь",
-        email: "",
-        usercode: "",
-      });
-      setIsLoggedIn(false);
+        await checkInternetOrThrow();
 
-      await checkInternetOrThrow();
-
-      // Use navigate so back button returns to landing page
-      router.navigate("/(tabs)/home");
-    } catch (err: any) {
+        router.navigate("/(tabs)/home");
+      } else {
+        // Guest mode disabled — go to authorization
+        await AsyncStorage.removeItem("guest_mode");
+        await AsyncStorage.removeItem("guest_ignore_token");
+        setGuestSession(false);
+        router.replace("/(preload)");
+      }
+    } catch (err) {
       if (err instanceof NetworkUnavailableError) {
         handleError(err, {
-          userMessage:
-            "Нет подключения к интернету. Проверьте сеть и попробуйте ещё раз.",
+          userMessage: "Нет подключения к интернету.",
         });
-      } else {
-        handleError(err);
-      }
+      } else handleError(err);
     } finally {
       setCtaLoading(false);
     }
   };
 
-  // --------------------------------------------------------
-  // ✔ Authorization link — disables guest mode and re-runs authFlow
-  // --------------------------------------------------------
   const handleAuthLink = async () => {
     try {
-      // 🔹 Leave guest world both in storage and in memory
       await AsyncStorage.removeItem("guest_mode");
       await AsyncStorage.removeItem("guest_ignore_token");
       setGuestSession(false);
-
       await checkInternetOrThrow();
-
-      // go through preload/authFlow so stored token / biometric / PIN can restore
       router.replace("/(preload)");
-    } catch (err: any) {
-      if (err instanceof NetworkUnavailableError) {
+    } catch (err) {
+      if (err instanceof NetworkUnavailableError)
         handleError(err, { userMessage: "Нет подключения к интернету." });
-      } else {
-        handleError(err);
-      }
+      else handleError(err);
     }
   };
 
@@ -143,9 +155,7 @@ export default function App() {
 
   return (
     <SafeAreaView className="bg-primary h-full">
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: bottomPad }}
-      >
+      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: bottomPad }}>
         <View
           style={{
             alignSelf: "center",
@@ -165,8 +175,6 @@ export default function App() {
               marginTop: 25,
             }}
             resizeMode="contain"
-            accessible
-            accessibilityLabel="Искра Юг — логотип"
           />
 
           <View style={{ alignItems: "center", marginTop: 25 }}>
@@ -178,8 +186,7 @@ export default function App() {
                 textAlign: "center",
               }}
             >
-              Универсальная платформа для заказа электроинструмента ТМ Электроприбор, ЭЛТИ,
-              Приоритет, Усадьба. г. Ростов-на-Дону.
+              Универсальная платформа для заказа электроинструмента.
             </Text>
           </View>
 
@@ -198,7 +205,7 @@ export default function App() {
 
           <View style={{ marginTop: ctaTop }}>
             <CustomButton
-              title="Продолжить для просмотра"
+              title={buttonTitle}
               handlePress={handleContinue}
               containerStyles="w-full border-4 border-red-700"
               textStyles={isCompact ? "text-lg" : "text-xl"}
@@ -206,19 +213,21 @@ export default function App() {
             />
           </View>
 
-          <View style={{ marginTop: 20, alignItems: "center" }}>
-            <TouchableOpacity onPress={handleAuthLink} activeOpacity={0.7}>
-              <Text
-                style={{
-                  color: "#93c5fd",
-                  fontSize: 18,
-                  textDecorationLine: "underline",
-                }}
-              >
-                Авторизация
-              </Text>
-            </TouchableOpacity>
-          </View>
+          {showAuthLink && (
+            <View style={{ marginTop: 20, alignItems: "center" }}>
+              <TouchableOpacity onPress={handleAuthLink} activeOpacity={0.7}>
+                <Text
+                  style={{
+                    color: "#93c5fd",
+                    fontSize: 18,
+                    textDecorationLine: "underline",
+                  }}
+                >
+                  Авторизация
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </ScrollView>
 
