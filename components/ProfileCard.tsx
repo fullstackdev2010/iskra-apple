@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { Card, Title, Paragraph } from "react-native-paper";
 import { View, StyleSheet, Linking, Pressable, Switch, Text } from "react-native";
+import Constants from 'expo-constants';
 import CustomButton from "../components/CustomButton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useGlobalContext } from "../context/GlobalProvider";
@@ -34,6 +35,7 @@ const ProfileCard: React.FC<ItemCardProps> = ({
 
   const [biometricEnabled, setBiometricEnabled] = useState(DEFAULT_BIOMETRIC);
   const [guestEnabled, setGuestEnabled] = useState(true);
+  const appVersion = Constants.expoConfig?.version ?? "1.0.0";
 
   useEffect(() => {
     (async () => {
@@ -81,8 +83,7 @@ const ProfileCard: React.FC<ItemCardProps> = ({
               Телефон: {phone || "—"}
             </Paragraph>
           </Pressable>
-
-          
+       
           {/* SETTINGS BLOCK */}
           <View
             style={{
@@ -153,6 +154,14 @@ const ProfileCard: React.FC<ItemCardProps> = ({
               textStyles="text-xl"
             />
           )}
+
+          {/* App Version */}
+          <View style={{ marginTop: 10, alignItems: "center" }}>
+            <Text style={styles.label}>
+              Версия приложения: {appVersion}
+            </Text>
+          </View>
+
         </Card.Content>
       </Card>
     </View>
