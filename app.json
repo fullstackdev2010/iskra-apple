@@ -3,7 +3,7 @@
     "name": "Искра Юг",
     "scheme": "iskra",
     "slug": "iskra-apple",
-    "version": "1.18.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {
@@ -13,7 +13,7 @@
     },
     "android": {
       "package": "com.iskraug.iskra",
-      "versionCode": 18,
+      "versionCode": 20,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#161622"
@@ -32,7 +32,7 @@
         "resizeMode": "cover",
         "backgroundColor": "#161622"
       },
-      "buildNumber": "18",
+      "buildNumber": "20",
       "infoPlist": {}
     },
     "androidStatusBar": {
