@@ -9,6 +9,7 @@ import * as Crypto from 'expo-crypto';
 import { router } from 'expo-router';
 import { getToken, saveToken } from '../../lib/authService';
 import { images } from '../../constants';
+import { checkBackendOrThrow } from "../../lib/network";
 
 const PEPPER = 'iskra.pin.v1';
 
@@ -89,7 +90,13 @@ const PinSetup = () => {
       } else {
         Alert.alert('Предупреждение', 'PIN сохранен, но токен не найден.');
       }
-      router.replace('/home');
+      // Strict sync B1: home requires server online
+      try {
+        await checkBackendOrThrow();
+        router.replace('/home');
+      } catch {
+        Alert.alert("Нет соединения", "Сервер недоступен. Повторите позже.");
+      }
     } catch (err: any) {
       console.warn('PIN save error:', err?.message ?? String(err));
       Alert.alert('Ошибка', 'Не удалось сохранить PIN. Возможно, устройство не поддерживает безопасное хранилище.');
@@ -103,7 +110,12 @@ const PinSetup = () => {
     if (token) {
       await saveToken(token, false);
       Alert.alert('Вход', 'Вы вошли без PIN-кода. Вы можете установить его позже.');
-      router.replace('/home');
+      try {
+        await checkBackendOrThrow();
+        router.replace('/home');
+      } catch {
+        Alert.alert("Нет соединения", "Сервер недоступен. Повторите позже.");
+      }
     } else {
       Alert.alert('Ошибка', 'Токен не найден.');
     }

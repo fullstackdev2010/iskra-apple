@@ -13,7 +13,7 @@ import PinKeypad from "../../components/PinKeypad";
 import { images } from "../../constants";
 import { checkBackendOrThrow } from "../../lib/network";
 
-const PEPPER = "iskra.pin.v1"; // used for new/modern PIN hashes
+const PEPPER = "iskra.pin.v1";
 
 const PinLogin = () => {
   const { setUser, setIsLoggedIn } = useGlobalContext();
@@ -21,42 +21,41 @@ const PinLogin = () => {
   const [loading, setLoading] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
-  // Responsive sizing
   const { height } = useWindowDimensions();
   const logoH = Math.max(120, Math.min(240, Math.round(height * 0.18)));
   const titleSize = Math.max(18, Math.min(26, Math.round(height * 0.028)));
   const gapDots = Math.max(10, Math.min(20, Math.round(height * 0.02)));
   const gapKeypad = Math.max(20, Math.min(32, Math.round(height * 0.028)));
 
+  // -------------------------------------------------------------
+  // 1) Hydration: DO NOT redirect if backend offline.
+  // Show alert once and allow user to retry PIN later.
+  // -------------------------------------------------------------
   useEffect(() => {
-    // Perform hydration: check backend and ensure SecureStore is readable
     (async () => {
       try {
         await checkBackendOrThrow();
-        // Give SecureStore a moment (prevents race on fast reopen)
-        await new Promise((res) => setTimeout(res, 120));
-        setHydrated(true);
       } catch {
-        Alert.alert("Нет соединения", "Сервер недоступен. Попробуйте позже.");
-        router.replace("/(preload)");
+        Alert.alert("Нет соединения", "Сервер недоступен. Повторите попытку позже.");
+        // Stay on PIN screen — NO redirect.
       }
+      // Small pause allows SecureStore to be ready
+      await new Promise((r) => setTimeout(r, 120));
+      setHydrated(true);
     })();
   }, []);
 
-  /**
-   * Ensure we have a stored PIN:
-   * - If SecureStore lost it (rare), try to restore from AsyncStorage backup.
-   * - If neither exists, silently route to password login.
-   */
+  // -------------------------------------------------------------
+  // 2) Ensure PIN exists (local-only check)
+  // -------------------------------------------------------------
   useEffect(() => {
-    if (!hydrated) return; // ⛔ Don't check PIN storage before hydration
+    if (!hydrated) return;
 
     let active = true;
     (async () => {
       try {
         let hash = await SecureStore.getItemAsync("pin_hash");
 
-        // Restore from backup if SecureStore was empty
         if (!hash) {
           const backup = await AsyncStorage.getItem("pin_hash_backup");
           if (backup) {
@@ -70,7 +69,9 @@ const PinLogin = () => {
           }
         }
 
-        if (!hash && active) router.replace("/(auth)/sign-in");
+        if (!hash && active) {
+          router.replace("/(auth)/sign-in");
+        }
       } catch {
         if (active) router.replace("/(auth)/sign-in");
       }
@@ -81,39 +82,32 @@ const PinLogin = () => {
     };
   }, [hydrated]);
 
-  const handleDigit = (digit: string) => {
+  const handleDigit = (d: string) => {
     if (loading) return;
-    if (pin.length < 4) setPin((prev) => prev + digit);
+    if (pin.length < 4) setPin((p) => p + d);
   };
 
-  const handleDelete = () => setPin((prev) => prev.slice(0, -1));
+  const handleDelete = () => setPin((p) => p.slice(0, -1));
 
-  /**
-   * Backward-compatible PIN check:
-   * - Accept both legacy hash (SHA256(pin)) and new hash (SHA256(pin+PEPPER)).
-   * - If legacy matches, migrate to peppered hash + backup.
-   */
+  // -------------------------------------------------------------
+  // 3) Main PIN check — STRICT SYNC MODE (B1)
+  // -------------------------------------------------------------
   const checkPin = async () => {
     setLoading(true);
     try {
-      const storedHash = await SecureStore.getItemAsync("pin_hash").catch(
-        () => null
-      );
+      const storedHash = await SecureStore.getItemAsync("pin_hash").catch(() => null);
       if (!storedHash) {
         router.replace("/(auth)/sign-in");
         return;
       }
 
-      const [hashPlain, hashPeppered] = await Promise.all([
+      const [legacy, modern] = await Promise.all([
         Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, pin),
-        Crypto.digestStringAsync(
-          Crypto.CryptoDigestAlgorithm.SHA256,
-          pin + PEPPER
-        ),
+        Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, pin + PEPPER),
       ]);
 
-      const legacyMatch = storedHash === hashPlain;
-      const modernMatch = storedHash === hashPeppered;
+      const legacyMatch = storedHash === legacy;
+      const modernMatch = storedHash === modern;
 
       if (!legacyMatch && !modernMatch) {
         Alert.alert("Неверный PIN-код");
@@ -121,54 +115,70 @@ const PinLogin = () => {
         return;
       }
 
-      // If legacy matched, migrate to peppered + backup
+      // Migrate legacy hash → modern hash
       if (legacyMatch && !modernMatch) {
         try {
+          const newHash = modern;
           const opts: any = {
             requireAuthentication: false,
-            keychainAccessible:
-              (SecureStore as any).AFTER_FIRST_UNLOCK || undefined,
+            keychainAccessible: (SecureStore as any).AFTER_FIRST_UNLOCK || undefined,
           };
-          await SecureStore.setItemAsync("pin_hash", hashPeppered, opts);
-          await AsyncStorage.setItem("pin_hash_backup", hashPeppered);
-        } catch {
-          console.warn(
-            "⚠️ Failed to migrate PIN hash to peppered version"
-          );
+          await SecureStore.setItemAsync("pin_hash", newHash, opts);
+          await AsyncStorage.setItem("pin_hash_backup", newHash);
+        } catch {}
+      }
+
+      // -------------------------------------------------------------
+      // STRICT OPTION B1: backend *must* be online to continue.
+      // -------------------------------------------------------------
+      try {
+        await checkBackendOrThrow(3000);
+      } catch {
+        Alert.alert("Нет соединения", "Сервер недоступен. Попробуйте позже.");
+        return; // Stay on PIN screen
+      }
+
+      // -------------------------------------------------------------
+      // Token handling — MINIMAL CHANGES
+      // -------------------------------------------------------------
+      let token: string | null = await getToken(false);
+
+      // If token missing, only then try refresh
+      if (!token) {
+        token = await refreshAccessToken();
+
+        if (!token) {
+          // Backend is online but refresh failed → user must reauthenticate
+          router.replace("/(auth)/sign-in");
+          return;
         }
       }
 
-      // PIN OK → ensure we have a valid token; try refresh if missing
-      let token = await getToken(false);
-      if (!token) token = await refreshAccessToken();
+      await saveToken(token, false);
 
-      if (token) {
-        await saveToken(token, false);
+      // Guest cleanup
+      await AsyncStorage.removeItem("guest_mode");
+      await AsyncStorage.removeItem("guest_ignore_token");
+      setGuestSession(false);
 
-        // ✅ Leaving guest mode on successful PIN auth
-        await AsyncStorage.removeItem("guest_mode");
-        await AsyncStorage.removeItem("guest_ignore_token");
-        setGuestSession(false);
+      // Load profile (backend guaranteed online at this point)
+      const profile = await getCurrentUser();
+      setUser(profile);
+      setIsLoggedIn(true);
 
-        const profile = await getCurrentUser();
-        setUser(profile);
-        setIsLoggedIn(true);
+      await AsyncStorage.setItem("logged_in", "1");
 
-        await AsyncStorage.setItem("logged_in", "1");
-
-        router.replace("/home");
-      } else {
-        router.replace("/(auth)/sign-in"); // fallback to password if no usable token
-      }
-    } catch {
-      router.replace("/(auth)/sign-in");
+      router.replace("/home");
+    } catch (err) {
+      // No redirect unless token truly invalid.
+      Alert.alert("Ошибка", "Не удалось выполнить вход. Повторите попытку.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!hydrated) return; // ⛔ Never check PIN before hydration is done
+    if (!hydrated) return;
     if (pin.length === 4) checkPin();
   }, [pin, hydrated]);
 

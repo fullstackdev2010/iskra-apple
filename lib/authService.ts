@@ -180,9 +180,13 @@ export async function restoreBiometricSession(): Promise<string | null> {
 
   await new Promise(r => setTimeout(r, 80)); // extra stability
 
-  // After successful biometric, restore or refresh token
+  // Strict sync mode B1:
+  // PIN flow handles refresh explicitly.
+  // Biometric must NOT auto-refresh. If token is missing → return null.
   let token = await getToken(false);
-  if (!token) token = await refreshAccessToken();
+  if (!token) {
+    return null;
+  }
 
   if (token) {
     setGlobalToken(token);

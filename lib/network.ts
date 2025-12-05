@@ -31,7 +31,7 @@ export async function checkInternetOrThrow() {
  */
 export async function checkBackendOrThrow(timeoutMs = 4000) {
   const ctl = new AbortController();
-  const id = setTimeout(() => ctl.abort(), timeoutMs);
+  const id = setTimeout(() => ctl.abort(), timeoutMs || 2500);
   try {
     const res = await fetch(`${API_HOST}/health`, {
       method: 'GET',     // ← GET instead of HEAD

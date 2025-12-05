@@ -9,6 +9,7 @@ import { router } from 'expo-router';
 import PinKeypad from '../../components/PinKeypad';
 import { images } from '../../constants';
 import { getToken, saveToken } from '../../lib/authService';
+import { checkBackendOrThrow } from "../../lib/network";
 
 const PEPPER = 'iskra.pin.v1';
 
@@ -36,7 +37,12 @@ const PinReset = () => {
         const token = await getToken(false);
         if (token) {
           await saveToken(token, false);
-          router.replace('/home');
+          try {
+        await checkBackendOrThrow();
+        router.replace('/home');
+      } catch {
+        Alert.alert("Нет соединения", "Сервер недоступен. Повторите позже.");
+      }
         } else {
           router.replace('/(auth)/sign-in');
         }
