@@ -32,9 +32,9 @@ const PinKeypad = ({ onPress, onDelete, disabled }: PinKeypadProps) => {
             <Pressable
               key={j}
               onPress={() => handleKeyPress(key)}
-              className="w-16 h-16 rounded-full justify-center items-center bg-gray-200"
+              className="w-16 h-16 rounded-full justify-center items-center bg-gray-700"
             >
-              <Text className="text-2xl font-bold">{key}</Text>
+              <Text className="text-2xl font-bold color-secondary-300">{key}</Text>
             </Pressable>
           ))}
         </View>

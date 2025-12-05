@@ -52,21 +52,29 @@ const toastConfig: ToastConfig = {
   success: (props) => (
     <BaseToast
       {...props}
-      style={{ ...toastBaseStyle, borderColor: '#FF9D06' }}
+      style={{ 
+        ...toastBaseStyle, 
+        borderColor: '#FF9D06',
+        borderLeftColor: '#FF9D06',   // <-- FIX FOR iOS WHITE BORDER
+      }}
       contentContainerStyle={toastContentStyle}
       text1Style={text1Style}
       text2Style={text2Style}
-      // Allow wrapping instead of clipping
       text1NumberOfLines={6}
       text2NumberOfLines={6}
       text1Props={{ ellipsizeMode: 'tail' }}
       text2Props={{ ellipsizeMode: 'tail' }}
     />
   ),
+
   error: (props) => (
     <ErrorToast
       {...props}
-      style={{ ...toastBaseStyle, borderColor: '#FC0000' }}
+      style={{ 
+        ...toastBaseStyle, 
+        borderColor: '#FC0000',
+        borderLeftColor: '#FC0000',   // <-- FIX FOR iOS WHITE BORDER
+      }}
       contentContainerStyle={toastContentStyle}
       text1Style={text1Style}
       text2Style={text2Style}
@@ -76,10 +84,15 @@ const toastConfig: ToastConfig = {
       text2Props={{ ellipsizeMode: 'tail' }}
     />
   ),
+
   info: (props) => (
     <BaseToast
       {...props}
-      style={{ ...toastBaseStyle, borderColor: '#2563eb' }}
+      style={{ 
+        ...toastBaseStyle, 
+        borderColor: '#2563eb',
+        borderLeftColor: '#2563eb',   // <-- FIX FOR iOS WHITE BORDER
+      }}
       contentContainerStyle={toastContentStyle}
       text1Style={text1Style}
       text2Style={text2Style}
