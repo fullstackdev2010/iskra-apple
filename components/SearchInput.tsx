@@ -4,6 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { icons } from '../constants';
 import { router, usePathname, useLocalSearchParams } from 'expo-router';
 
+// SIMPLE GLOBAL DEBOUNCE TIMER
+let __searchTimer: any = null;
+
 interface SearchInputProps {
   initialQuery?: string;
   catalog?: string;
@@ -51,7 +54,12 @@ const SearchInput = ({ initialQuery = '', catalog, placeholder = 'поиск п�
 
   const handleTextChange = (text: string) => {
     setQuery(text);
-    if (onChangeText) onChangeText(text);
+    
+    // debounce 200ms
+    clearTimeout(__searchTimer);
+    __searchTimer = setTimeout(() => {
+      if (onChangeText) onChangeText(text);
+    }, 200);
   };
 
   const handleClear = () => {

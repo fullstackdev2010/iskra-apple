@@ -1,5 +1,5 @@
 // components/ItemCard.tsx
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, memo } from 'react';
 import { Card, Title, Paragraph } from 'react-native-paper';
 import { StyleSheet, View, Pressable, Modal, useWindowDimensions } from 'react-native';
 import { GestureHandlerRootView, Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -252,6 +252,9 @@ const ItemCard: React.FC<ItemCardProps> = ({
         <Card.Cover
           source={picture ? { uri: picture } : require('../assets/images/no_photo.jpg')}
           resizeMode="contain"
+          onError={() => {
+            /* Prevent Android UI freeze on image failure */
+          }}
         />
       </Pressable>
 
@@ -501,7 +504,8 @@ const ZeroStockGuard = (props: ItemCardProps) => {
   const normalized = raw.replace(/\s+/g, ' ').toLowerCase();
   const isZero = normalized === '0' || normalized === '0 шт' || normalized === '0pcs' || normalized === '0 pcs' || normalized === '0шт';
   if (isZero && !props?.allowZero) return null;
-  return <ItemCard {...props} />;
+  return <MemoizedItemCard {...props} />;
 };
 
+const MemoizedItemCard = memo(ItemCard);
 export default ZeroStockGuard;
